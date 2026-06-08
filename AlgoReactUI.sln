@@ -10,6 +10,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.gitignore = .gitignore
 	EndProjectSection
 EndProject
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "algo.ui.patternfly", "algo.ui.patternfly\algo.ui.patternfly.esproj", "{6E8CC723-6845-E90B-95A7-29A4A0BDACDE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,6 +24,12 @@ Global
 		{5CC726E9-7AEE-4FE7-918A-DCD3A3D4046A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5CC726E9-7AEE-4FE7-918A-DCD3A3D4046A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5CC726E9-7AEE-4FE7-918A-DCD3A3D4046A}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{6E8CC723-6845-E90B-95A7-29A4A0BDACDE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E8CC723-6845-E90B-95A7-29A4A0BDACDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E8CC723-6845-E90B-95A7-29A4A0BDACDE}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{6E8CC723-6845-E90B-95A7-29A4A0BDACDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E8CC723-6845-E90B-95A7-29A4A0BDACDE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E8CC723-6845-E90B-95A7-29A4A0BDACDE}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
