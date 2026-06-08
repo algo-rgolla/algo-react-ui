@@ -1,0 +1,98 @@
+import "bootstrap/dist/css/bootstrap.min.css";
+import PropTypes from "prop-types";
+import React from "react";
+
+import { connect } from "react-redux";
+import { Route, Routes } from "react-router-dom";
+
+import { useSelector } from "react-redux";
+import { createSelector } from "reselect";
+
+// Import Routes all
+import { authProtectedRoutes, publicRoutes } from "./routes/index";
+
+// Import all middleware
+import Authmiddleware from "./routes/route";
+
+// layouts Format
+import NonAuthLayout from "./components/NonAuthLayout";
+import VerticalLayout from "./components/VerticalLayout";
+
+// Import scss
+import "./assets/scss/theme.scss";
+
+// Import Firebase Configuration file
+import { initFirebaseBackend } from "./helpers/firebase_helper";
+import { AlgoContextProvider } from "./shared/context/AlgoContext";
+
+// Activating fake backend
+//fakeBackend();
+
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_APP_APIKEY,
+  authDomain: import.meta.env.VITE_APP_AUTHDOMAIN,
+  //databaseURL: import.meta.env.VITE_APP_DATABASEURL,
+  projectId: import.meta.env.VITE_APP_PROJECTID,
+  storageBucket: import.meta.env.VITE_APP_STORAGEBUCKET,
+  messagingSenderId: import.meta.env.VITE_APP_MESSAGINGSENDERID,
+  appId: import.meta.env.VITE_APP_APPID,
+  measurementId: import.meta.env.VITE_APP_MEASUREMENTID,
+};
+
+// init firebase backend
+initFirebaseBackend(firebaseConfig);
+
+const App = (props) => {
+  const LayoutProperties = createSelector(
+    (state) => state.Layout,
+    (layout) => ({
+      layoutType: layout.layoutType,
+    })
+  );
+
+  const { layoutType } = useSelector(LayoutProperties);
+
+  const Layout = VerticalLayout;
+
+  return (
+    <React.Fragment>
+      <Routes>
+        {publicRoutes.map((route, idx) => (
+          <Route
+            path={route.path}
+            element={<NonAuthLayout>{route.component}</NonAuthLayout>}
+            key={idx}
+            exact={true}
+          />
+        ))}
+
+        {authProtectedRoutes.map((route, idx) => (
+          <Route
+            path={route.path}
+            element={
+              <Authmiddleware>
+                <AlgoContextProvider>
+                  <Layout>{route.component}</Layout>
+                </AlgoContextProvider>
+              </Authmiddleware>
+            }
+            key={idx}
+            exact={true}
+          />
+        ))}
+      </Routes>
+    </React.Fragment>
+  );
+};
+
+App.propTypes = {
+  layout: PropTypes.any,
+};
+
+const mapStateToProps = (state) => {
+  return {
+    layout: state.Layout,
+  };
+};
+
+export default connect(mapStateToProps, null)(App);

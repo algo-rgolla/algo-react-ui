@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34330.188
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "algo.react.stock.ui", "algo.react.stock.ui\algo.react.stock.ui.esproj", "{5CC726E9-7AEE-4FE7-918A-DCD3A3D4046A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{EC3FD067-F762-4F76-84E8-3DDF4F6DB063}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5CC726E9-7AEE-4FE7-918A-DCD3A3D4046A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5CC726E9-7AEE-4FE7-918A-DCD3A3D4046A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5CC726E9-7AEE-4FE7-918A-DCD3A3D4046A}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{5CC726E9-7AEE-4FE7-918A-DCD3A3D4046A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5CC726E9-7AEE-4FE7-918A-DCD3A3D4046A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5CC726E9-7AEE-4FE7-918A-DCD3A3D4046A}.Release|Any CPU.Deploy.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E36B8D96-3BE7-49CD-BFF3-A916E0D6254D}
+	EndGlobalSection
+EndGlobal
