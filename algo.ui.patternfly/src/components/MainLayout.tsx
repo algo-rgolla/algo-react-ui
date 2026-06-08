@@ -44,7 +44,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             <NavItem
               itemId={2}
               component={NavLink}
-              to="/   "
+              to="/transactions"
               isActive={location.pathname === '/transactions'}
             >
               Algo Portfolio

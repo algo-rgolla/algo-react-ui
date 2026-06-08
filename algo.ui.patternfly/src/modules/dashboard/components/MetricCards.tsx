@@ -6,7 +6,7 @@ import {
   Gallery,
   GalleryItem,
 } from '@patternfly/react-core'
-import type { PortfolioSummary } from '../types/portfolio'
+import type { PortfolioSummary } from '../../../types/portfolio'
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',

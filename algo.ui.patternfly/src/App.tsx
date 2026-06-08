@@ -1,9 +1,9 @@
 import { Routes, Route } from 'react-router-dom'
-import { PageSection, Title } from '@patternfly/react-core'
 import { MainLayout } from './components/MainLayout'
-import Dashboard from './pages/Dashboard'
-import PortfolioPage from './pages/Portfolio'
-import MetricCards from './components/MetricCards'
+import { DashboardPage } from './modules/dashboard'
+import { WatchlistPage } from './modules/watchlist'
+import { AlgoPortfolioPage } from './modules/algo-portfolio'
+import MetricCards from './modules/dashboard/components/MetricCards'
 import HoldingsTable from './components/HoldingsTable'
 import { useMockData } from './hooks/useMockData'
 
@@ -18,23 +18,14 @@ function App() {
           path="/"
           element={
             <>
-              <Dashboard />
+              <DashboardPage />
               <MetricCards summary={portfolioSummary} />
               <HoldingsTable holdings={stockHoldings} />
             </>
           }
         />
-        <Route
-          path="/watchlist"
-          element={
-            <PageSection padding={{ default: 'padding' }}>
-              <Title headingLevel="h1" size="2xl">
-                Watchlist coming soon
-              </Title>
-            </PageSection>
-          }
-        />
-        <Route path="/transactions" element={<PortfolioPage />} />
+        <Route path="/watchlist" element={<WatchlistPage />} />
+        <Route path="/transactions" element={<AlgoPortfolioPage />} />
       </Routes>
     </MainLayout>
   )

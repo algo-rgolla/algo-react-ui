@@ -12,9 +12,9 @@ import {
   Split,
   SplitItem,
 } from '@patternfly/react-core'
-import type { StockHolding } from '../types/portfolio'
-import HoldingsTable from '../components/HoldingsTable'
-import { useMockData } from '../hooks/useMockData'
+import type { StockHolding } from '../../types/portfolio'
+import HoldingsTable from '../../components/HoldingsTable'
+import { useMockData } from '../../hooks/useMockData'
 
 const defaultFormState = {
   ticker: '',
@@ -48,7 +48,7 @@ function computeHoldingFromForm(form: FormState, existing?: StockHolding): Stock
   }
 }
 
-export default function PortfolioPage() {
+export default function AlgoPortfolioPage() {
   const { stockHoldings } = useMockData()
   const [holdings, setHoldings] = useState<StockHolding[]>(stockHoldings)
   const [formState, setFormState] = useState<FormState>(defaultFormState)
