@@ -25,29 +25,16 @@ export function MainLayout({ children }: MainLayoutProps) {
       <PageSidebarBody>
         <Nav aria-label="Portfolio navigation">
           <NavList>
-            <NavItem
-              itemId={0}
-              component={NavLink}
-              to="/"
-              isActive={location.pathname === '/'}
-            >
-              Dashboard
+            <NavItem itemId={0} isActive={location.pathname === '/'}>
+              <NavLink to="/" end>
+                Dashboard
+              </NavLink>
             </NavItem>
-            <NavItem
-              itemId={1}
-              component={NavLink}
-              to="/watchlist"
-              isActive={location.pathname === '/watchlist'}
-            >
-              Watchlist
+            <NavItem itemId={1} isActive={location.pathname === '/watchlist'}>
+              <NavLink to="/watchlist">Watchlist</NavLink>
             </NavItem>
-            <NavItem
-              itemId={2}
-              component={NavLink}
-              to="/transactions"
-              isActive={location.pathname === '/transactions'}
-            >
-              Algo Portfolio
+            <NavItem itemId={2} isActive={location.pathname === '/algo-portfolio'}>
+              <NavLink to="/algo-portfolio">Algo Portfolio</NavLink>
             </NavItem>
           </NavList>
         </Nav>

@@ -25,7 +25,7 @@ export default function AppRoutes({ portfolioSummary, stockHoldings }: AppRoutes
         }
       />
       <Route path="/watchlist" element={<WatchlistPage />} />
-      <Route path="/transactions" element={<AlgoPortfolioPage />} />
+      <Route path="/algo-portfolio" element={<AlgoPortfolioPage />} />
     </Routes>
   )
 }
