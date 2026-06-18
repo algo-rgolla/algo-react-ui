@@ -49,7 +49,22 @@ const holdingSchema = Yup.object({
 type AddHoldingModalProps = {
   isOpen: boolean
   onClose: () => void
-  onAddHolding: (holding: StockHolding) => void
+  onSaveHolding: (holding: StockHolding) => void
+  holding?: StockHolding | null
+}
+
+function getInitialValues(holding?: StockHolding | null): HoldingFormValues {
+  if (!holding) {
+    return initialFormValues
+  }
+
+  return {
+    ticker: holding.ticker,
+    companyName: holding.companyName,
+    sharesOwned: String(holding.sharesOwned),
+    averageCostBasis: String(holding.averageCostBasis),
+    currentPrice: String(holding.currentPrice),
+  }
 }
 
 function computeHoldingFromForm(form: HoldingFormValues): StockHolding {
@@ -74,14 +89,19 @@ function computeHoldingFromForm(form: HoldingFormValues): StockHolding {
   }
 }
 
-export default function AddHoldingModal({ isOpen, onClose, onAddHolding }: AddHoldingModalProps) {
+export default function AddHoldingModal({ isOpen, onClose, onSaveHolding, holding }: AddHoldingModalProps) {
+  const isEditing = Boolean(holding)
+  const title = isEditing ? 'Edit Holding' : 'Add Holding'
+  const submitLabel = isEditing ? 'Save Changes' : 'Add Holding'
+
   return (
-    <Modal title="Add Holding" isOpen={isOpen} onClose={onClose} aria-label="Add holding modal" variant="small">
+    <Modal title={title} isOpen={isOpen} onClose={onClose} aria-label="Holding modal" variant="small">
       <Formik
-        initialValues={initialFormValues}
+        initialValues={getInitialValues(holding)}
         validationSchema={holdingSchema}
+        enableReinitialize
         onSubmit={(values, helpers) => {
-          onAddHolding(computeHoldingFromForm(values))
+          onSaveHolding(computeHoldingFromForm(values))
           helpers.resetForm()
           onClose()
         }}
@@ -208,7 +228,7 @@ export default function AddHoldingModal({ isOpen, onClose, onAddHolding }: AddHo
                   <Stack hasGutter>
                     <StackItem>
                       <Button variant="primary" type="submit">
-                        Add Holding
+                        {submitLabel}
                       </Button>
                     </StackItem>
                     <StackItem>
