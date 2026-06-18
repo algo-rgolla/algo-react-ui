@@ -16,8 +16,8 @@ import {
   Title,
 } from '@patternfly/react-core'
 import type { StockHolding } from '../../types/portfolio'
-import HoldingsTable from '../../components/HoldingsTable'
 import { useMockData } from '../../hooks/useMockData'
+import HoldingsTable from './components/HoldingsTable'
 
 type HoldingFormValues = {
   ticker: string

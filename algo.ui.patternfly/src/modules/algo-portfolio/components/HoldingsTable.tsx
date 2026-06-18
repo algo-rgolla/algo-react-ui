@@ -1,6 +1,6 @@
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table'
 import { Button } from '@patternfly/react-core'
-import type { StockHolding } from '../types/portfolio'
+import type { StockHolding } from '../../../types/portfolio'
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',

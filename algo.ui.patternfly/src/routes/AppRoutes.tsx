@@ -3,8 +3,8 @@ import { DashboardPage } from '../modules/dashboard'
 import { WatchlistPage } from '../modules/watchlist'
 import { AlgoPortfolioPage } from '../modules/algo-portfolio'
 import MetricCards from '../modules/dashboard/components/MetricCards'
-import HoldingsTable from '../components/HoldingsTable'
 import type { PortfolioSummary, StockHolding } from '../types/portfolio'
+import HoldingsTable from '../modules/algo-portfolio/components/HoldingsTable'
 
 interface AppRoutesProps {
   portfolioSummary: PortfolioSummary
