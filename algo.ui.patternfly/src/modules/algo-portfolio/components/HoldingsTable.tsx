@@ -1,6 +1,6 @@
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table'
 import { Button } from '@patternfly/react-core'
-import type { StockHolding } from '../../../types/portfolio'
+import type { AlgoPortfolioProduct, StockHolding } from '../../../types/portfolio'
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -19,30 +19,67 @@ const positiveColor = '#3fe1b5'
 const negativeColor = '#f35a5a'
 
 interface HoldingsTableProps {
-  holdings: StockHolding[]
+  holdings: (StockHolding | AlgoPortfolioProduct)[]
   onEdit?: (holding: StockHolding) => void
   onDelete?: (ticker: string) => void
 }
 
+function isPortfolioProduct(
+  holding: StockHolding | AlgoPortfolioProduct,
+): holding is AlgoPortfolioProduct {
+  return 'symbol' in holding
+}
+
 export default function HoldingsTable({ holdings, onEdit, onDelete }: HoldingsTableProps) {
-  const showActions = Boolean(onEdit || onDelete)
+  const hasApiRows = holdings.length > 0 && isPortfolioProduct(holdings[0])
+  const showActions = !hasApiRows && Boolean(onEdit || onDelete)
 
   return (
     <Table aria-label="Holdings table" variant="compact">
       <Thead>
         <Tr>
-          <Th>Ticker</Th>
-          <Th>Company Name</Th>
-          <Th style={{ textAlign: 'right' }}>Shares Owned</Th>
-          <Th style={{ textAlign: 'right' }}>Avg Cost</Th>
-          <Th style={{ textAlign: 'right' }}>Current Price</Th>
-          <Th style={{ textAlign: 'right' }}>Market Value</Th>
-          <Th style={{ textAlign: 'right' }}>Total Return (%)</Th>
+          {hasApiRows ? (
+            <>
+              <Th>Symbol</Th>
+              <Th>Name</Th>
+              <Th>Open Date</Th>
+              <Th style={{ textAlign: 'right' }}>Profit / Loss</Th>
+            </>
+          ) : (
+            <>
+              <Th>Ticker</Th>
+              <Th>Company Name</Th>
+              <Th style={{ textAlign: 'right' }}>Shares Owned</Th>
+              <Th style={{ textAlign: 'right' }}>Avg Cost</Th>
+              <Th style={{ textAlign: 'right' }}>Current Price</Th>
+              <Th style={{ textAlign: 'right' }}>Market Value</Th>
+              <Th style={{ textAlign: 'right' }}>Total Return (%)</Th>
+            </>
+          )}
           {showActions && <Th style={{ textAlign: 'right' }}>Actions</Th>}
         </Tr>
       </Thead>
       <Tbody>
         {holdings.map((holding) => {
+          if (isPortfolioProduct(holding)) {
+            return (
+              <Tr key={`${holding.portfolioId}-${holding.symbol}-${holding.openDate}`}>
+                <Td dataLabel="Symbol" style={{ textAlign: 'left' }}>
+                  {holding.symbol}
+                </Td>
+                <Td dataLabel="Name" style={{ textAlign: 'left' }}>
+                  {holding.name}
+                </Td>
+                <Td dataLabel="Open Date" style={{ textAlign: 'left' }}>
+                  {holding.openDate}
+                </Td>
+                <Td dataLabel="Profit / Loss" style={{ textAlign: 'right' }}>
+                  {holding.profitLoss}
+                </Td>
+              </Tr>
+            )
+          }
+
           const returnColor = holding.totalGainLossPercentage >= 0 ? positiveColor : negativeColor
           const formattedReturn = percentageFormatter.format(holding.totalGainLossPercentage / 100)
 

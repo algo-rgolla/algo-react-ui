@@ -1,36 +1,49 @@
-import { useState } from 'react'
-import { Button, Divider, PageSection, Stack, StackItem, Title } from '@patternfly/react-core'
-import type { StockHolding } from '../../types/portfolio'
-import { useMockData } from '../../hooks/useMockData'
+import { useEffect, useState } from 'react'
+import { Divider, PageSection, Stack, StackItem, Title } from '@patternfly/react-core'
+import axios from 'axios'
+import type { AlgoPortfolioProduct } from '../../types/portfolio'
 import HoldingsTable from './components/HoldingsTable'
-import AddHoldingModal from './components/AddHoldingModal'
+
+interface AlgoPortfolioResponse {
+  products: AlgoPortfolioProduct[]
+}
 
 export default function AlgoPortfolioPage() {
-  const { stockHoldings } = useMockData()
-  const [holdings, setHoldings] = useState<StockHolding[]>(() => stockHoldings)
-  const [isAddHoldingModalOpen, setIsAddHoldingModalOpen] = useState(false)
-  const [editingHolding, setEditingHolding] = useState<StockHolding | null>(null)
+  const [holdings, setHoldings] = useState<AlgoPortfolioProduct[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const isHoldingModalOpen = isAddHoldingModalOpen || editingHolding !== null
+  useEffect(() => {
+    const controller = new AbortController()
 
-  const closeHoldingModal = () => {
-    setIsAddHoldingModalOpen(false)
-    setEditingHolding(null)
-  }
+    async function fetchHoldings() {
+      setIsLoading(true)
+      setError(null)
 
-  const handleSaveHolding = (savedHolding: StockHolding) => {
-    setHoldings((currentHoldings) => {
-      if (!editingHolding) {
-        return [...currentHoldings, savedHolding]
+      try {
+        const response = await axios.get<AlgoPortfolioResponse>(
+          '/api/AlgoPortfolio/algo-portfolio-list',
+          { signal: controller.signal },
+        )
+        setHoldings(response.data.products ?? [])
+      } catch (fetchError) {
+        if (axios.isCancel(fetchError)) {
+          return
+        }
+
+        console.error('AlgoPortfolio fetch error:', fetchError)
+        setError('Unable to load portfolio holdings. Please try again.')
+      } finally {
+        setIsLoading(false)
       }
+    }
 
-      return currentHoldings.map((holding) => (holding.ticker === editingHolding.ticker ? savedHolding : holding))
-    })
-  }
+    void fetchHoldings()
 
-  const handleDeleteHolding = (ticker: string) => {
-    setHoldings((currentHoldings) => currentHoldings.filter((holding) => holding.ticker !== ticker))
-  }
+    return () => {
+      controller.abort()
+    }
+  }, [])
 
   return (
     <>
@@ -40,12 +53,7 @@ export default function AlgoPortfolioPage() {
             <Title headingLevel="h1" size="2xl" style={{ marginBottom: 8 }}>
               Algo Portfolio
             </Title>
-            <p>Manage your stock portfolio with sample holdings and add new rows from the modal form.</p>
-          </StackItem>
-          <StackItem>
-            <Button variant="primary" onClick={() => setIsAddHoldingModalOpen(true)}>
-              Add Holding
-            </Button>
+            <p>View the current portfolio list as returned from the backend API.</p>
           </StackItem>
         </Stack>
       </PageSection>
@@ -53,27 +61,19 @@ export default function AlgoPortfolioPage() {
       <PageSection padding={{ default: 'padding' }}>
         <Stack hasGutter>
           <StackItem>
-            <HoldingsTable
-              holdings={holdings}
-              onEdit={(holding) => {
-                setEditingHolding(holding)
-                setIsAddHoldingModalOpen(false)
-              }}
-              onDelete={handleDeleteHolding}
-            />
+            {isLoading ? (
+              <p>Loading portfolio holdings...</p>
+            ) : error ? (
+              <p style={{ color: '#c9190b' }}>{error}</p>
+            ) : (
+              <HoldingsTable holdings={holdings} />
+            )}
           </StackItem>
           <StackItem>
             <Divider />
           </StackItem>
         </Stack>
       </PageSection>
-
-      <AddHoldingModal
-        isOpen={isHoldingModalOpen}
-        onClose={closeHoldingModal}
-        onSaveHolding={handleSaveHolding}
-        holding={editingHolding}
-      />
     </>
   )
 }
