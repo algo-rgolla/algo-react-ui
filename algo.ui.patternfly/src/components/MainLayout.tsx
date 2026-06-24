@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
+import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
+  Button,
   Masthead,
   MastheadBrand,
   MastheadMain,
@@ -19,6 +21,7 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   const location = useLocation()
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
   const sidebar = (
     <PageSidebar>
@@ -47,6 +50,15 @@ export function MainLayout({ children }: MainLayoutProps) {
       masthead={
         <Masthead>
           <MastheadMain>
+            <Button
+              variant="plain"
+              aria-label={isSidebarOpen ? 'Collapse navigation' : 'Expand navigation'}
+              aria-pressed={isSidebarOpen}
+              onClick={() => setIsSidebarOpen((prev) => !prev)}
+              style={{ marginRight: 8 }}
+            >
+              {isSidebarOpen ? 'Hide menu' : 'Show menu'}
+            </Button>
             <MastheadBrand>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <span
@@ -64,7 +76,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           </MastheadMain>
         </Masthead>
       }
-      sidebar={sidebar}
+      sidebar={isSidebarOpen ? sidebar : undefined}
       isContentFilled
     >
       <PageSection isFilled variant="default">

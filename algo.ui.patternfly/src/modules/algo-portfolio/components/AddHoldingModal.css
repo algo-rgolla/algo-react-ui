@@ -1,0 +1,12 @@
+.add-holding-modal {
+  border-radius: 0;
+}
+
+.add-holding-modal .pf-v6-c-modal-box {
+  border-radius: 0;
+  overflow: visible;
+}
+
+.add-holding-modal .pf-v6-c-modal-box__body {
+  overflow: visible;
+}

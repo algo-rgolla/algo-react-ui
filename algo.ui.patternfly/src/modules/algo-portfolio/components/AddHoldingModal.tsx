@@ -11,95 +11,61 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core'
-import type { StockHolding } from '../../../types/portfolio'
+import type { AlgoPortfolioCreateRequest } from '../../../types/portfolio'
+import './AddHoldingModal.css'
 
 type HoldingFormValues = {
-  ticker: string
-  companyName: string
-  sharesOwned: string
-  averageCostBasis: string
-  currentPrice: string
+  symbol: string
+  volume: string
+  openPrice: string
 }
 
 const initialFormValues: HoldingFormValues = {
-  ticker: '',
-  companyName: '',
-  sharesOwned: '',
-  averageCostBasis: '',
-  currentPrice: '',
+  symbol: '',
+  volume: '',
+  openPrice: '',
 }
 
 const holdingSchema = Yup.object({
-  ticker: Yup.string().trim().required('Ticker is required.'),
-  companyName: Yup.string().trim().required('Company is required.'),
-  sharesOwned: Yup.number()
-    .typeError('Shares must be a number.')
-    .required('Shares is required.')
-    .positive('Shares must be greater than 0.'),
-  averageCostBasis: Yup.number()
-    .typeError('Avg Cost must be a number.')
-    .required('Avg Cost is required.')
-    .positive('Avg Cost must be greater than 0.'),
-  currentPrice: Yup.number()
-    .typeError('Current Price must be a number.')
-    .required('Current Price is required.')
-    .positive('Current Price must be greater than 0.'),
+  symbol: Yup.string().trim().max(5, 'Symbol must be 5 characters or fewer.').required('Symbol is required.'),
+  volume: Yup.number()
+    .typeError('Volume must be a number.')
+    .required('Volume is required.')
+    .positive('Volume must be greater than 0.'),
+  openPrice: Yup.number()
+    .typeError('Open price must be a number.')
+    .required('Open price is required.')
+    .positive('Open price must be greater than 0.'),
 })
 
 type AddHoldingModalProps = {
   isOpen: boolean
   onClose: () => void
-  onSaveHolding: (holding: StockHolding) => void
-  holding?: StockHolding | null
+  onSaveHolding: (holding: AlgoPortfolioCreateRequest) => void
 }
 
-function getInitialValues(holding?: StockHolding | null): HoldingFormValues {
-  if (!holding) {
-    return initialFormValues
-  }
-
+function computeHoldingFromForm(form: HoldingFormValues): AlgoPortfolioCreateRequest {
   return {
-    ticker: holding.ticker,
-    companyName: holding.companyName,
-    sharesOwned: String(holding.sharesOwned),
-    averageCostBasis: String(holding.averageCostBasis),
-    currentPrice: String(holding.currentPrice),
+    symbol: form.symbol.trim().toUpperCase(),
+    volume: Number(form.volume),
+    action: 'Buy',
+    openPrice: Number(form.openPrice),
   }
 }
 
-function computeHoldingFromForm(form: HoldingFormValues): StockHolding {
-  const sharesOwned = Number(form.sharesOwned)
-  const averageCostBasis = Number(form.averageCostBasis)
-  const currentPrice = Number(form.currentPrice)
-  const totalValue = Number((sharesOwned * currentPrice).toFixed(2))
-  const totalGainLoss = Number(((currentPrice - averageCostBasis) * sharesOwned).toFixed(2))
-  const totalGainLossPercentage = Number(
-    (((currentPrice - averageCostBasis) / averageCostBasis) * 100).toFixed(1),
-  )
-
-  return {
-    ticker: form.ticker.trim().toUpperCase(),
-    companyName: form.companyName.trim(),
-    sharesOwned,
-    averageCostBasis,
-    currentPrice,
-    totalValue,
-    totalGainLoss,
-    totalGainLossPercentage,
-  }
-}
-
-export default function AddHoldingModal({ isOpen, onClose, onSaveHolding, holding }: AddHoldingModalProps) {
-  const isEditing = Boolean(holding)
-  const title = isEditing ? 'Edit Holding' : 'Add Holding'
-  const submitLabel = isEditing ? 'Save Changes' : 'Add Holding'
-
+export default function AddHoldingModal({ isOpen, onClose, onSaveHolding }: AddHoldingModalProps) {
   return (
-    <Modal title={title} isOpen={isOpen} onClose={onClose} aria-label="Holding modal" variant="small">
+    <Modal
+      className="add-holding-modal"
+      title="Add Holding"
+      isOpen={isOpen}
+      onClose={onClose}
+      aria-label="Holding modal"
+      variant="small"
+    >
       <Formik
-        initialValues={getInitialValues(holding)}
+        initialValues={initialFormValues}
         validationSchema={holdingSchema}
-        enableReinitialize
         onSubmit={(values, helpers) => {
           onSaveHolding(computeHoldingFromForm(values))
           helpers.resetForm()
@@ -107,11 +73,9 @@ export default function AddHoldingModal({ isOpen, onClose, onSaveHolding, holdin
         }}
       >
         {({ values, errors, touched, handleBlur, handleSubmit, setFieldValue, resetForm }) => {
-          const tickerHasError = Boolean(touched.ticker && errors.ticker)
-          const companyHasError = Boolean(touched.companyName && errors.companyName)
-          const sharesHasError = Boolean(touched.sharesOwned && errors.sharesOwned)
-          const avgCostHasError = Boolean(touched.averageCostBasis && errors.averageCostBasis)
-          const priceHasError = Boolean(touched.currentPrice && errors.currentPrice)
+          const symbolHasError = Boolean(touched.symbol && errors.symbol)
+          const volumeHasError = Boolean(touched.volume && errors.volume)
+          const openPriceHasError = Boolean(touched.openPrice && errors.openPrice)
 
           return (
             <Form
@@ -122,103 +86,63 @@ export default function AddHoldingModal({ isOpen, onClose, onSaveHolding, holdin
             >
               <Stack hasGutter>
                 <StackItem>
-                  <FormGroup label="Ticker" fieldId="portfolio-ticker" isRequired>
+                  <FormGroup label="Symbol" fieldId="portfolio-symbol" isRequired>
                     <TextInput
-                      id="portfolio-ticker"
-                      name="ticker"
+                      id="portfolio-symbol"
+                      name="symbol"
                       type="text"
-                      value={values.ticker}
-                      onChange={(_, value) => setFieldValue('ticker', String(value))}
+                      maxLength={5}
+                      value={values.symbol}
+                      onChange={(_, value) => setFieldValue('symbol', String(value).slice(0, 5))}
                       onBlur={handleBlur}
                       placeholder="AAPL"
                       isRequired
                     />
-                    {tickerHasError && (
+                    {symbolHasError && (
                       <HelperText>
-                        <HelperTextItem variant="error">{errors.ticker}</HelperTextItem>
+                        <HelperTextItem variant="error">{errors.symbol}</HelperTextItem>
                       </HelperText>
                     )}
                   </FormGroup>
                 </StackItem>
 
                 <StackItem>
-                  <FormGroup label="Company" fieldId="portfolio-company" isRequired>
+                  <FormGroup label="Volume" fieldId="portfolio-volume" isRequired>
                     <TextInput
-                      id="portfolio-company"
-                      name="companyName"
-                      type="text"
-                      value={values.companyName}
-                      onChange={(_, value) => setFieldValue('companyName', String(value))}
-                      onBlur={handleBlur}
-                      placeholder="Apple Inc."
-                      isRequired
-                    />
-                    {companyHasError && (
-                      <HelperText>
-                        <HelperTextItem variant="error">{errors.companyName}</HelperTextItem>
-                      </HelperText>
-                    )}
-                  </FormGroup>
-                </StackItem>
-
-                <StackItem>
-                  <FormGroup label="Shares" fieldId="portfolio-shares" isRequired>
-                    <TextInput
-                      id="portfolio-shares"
-                      name="sharesOwned"
+                      id="portfolio-volume"
+                      name="volume"
                       type="number"
                       min={1}
-                      value={values.sharesOwned}
-                      onChange={(_, value) => setFieldValue('sharesOwned', String(value))}
+                      value={values.volume}
+                      onChange={(_, value) => setFieldValue('volume', String(value))}
                       onBlur={handleBlur}
                       placeholder="10"
                       isRequired
                     />
-                    {sharesHasError && (
+                    {volumeHasError && (
                       <HelperText>
-                        <HelperTextItem variant="error">{errors.sharesOwned}</HelperTextItem>
+                        <HelperTextItem variant="error">{errors.volume}</HelperTextItem>
                       </HelperText>
                     )}
                   </FormGroup>
                 </StackItem>
 
                 <StackItem>
-                  <FormGroup label="Avg Cost" fieldId="portfolio-avg-cost" isRequired>
+                  <FormGroup label="Open Price" fieldId="portfolio-open-price" isRequired>
                     <TextInput
-                      id="portfolio-avg-cost"
-                      name="averageCostBasis"
+                      id="portfolio-open-price"
+                      name="openPrice"
                       type="number"
                       min={1}
-                      value={values.averageCostBasis}
-                      onChange={(_, value) => setFieldValue('averageCostBasis', String(value))}
-                      onBlur={handleBlur}
-                      placeholder="125.00"
-                      isRequired
-                    />
-                    {avgCostHasError && (
-                      <HelperText>
-                        <HelperTextItem variant="error">{errors.averageCostBasis}</HelperTextItem>
-                      </HelperText>
-                    )}
-                  </FormGroup>
-                </StackItem>
-
-                <StackItem>
-                  <FormGroup label="Current Price" fieldId="portfolio-current-price" isRequired>
-                    <TextInput
-                      id="portfolio-current-price"
-                      name="currentPrice"
-                      type="number"
-                      min={1}
-                      value={values.currentPrice}
-                      onChange={(_, value) => setFieldValue('currentPrice', String(value))}
+                      value={values.openPrice}
+                      onChange={(_, value) => setFieldValue('openPrice', String(value))}
                       onBlur={handleBlur}
                       placeholder="140.00"
                       isRequired
                     />
-                    {priceHasError && (
+                    {openPriceHasError && (
                       <HelperText>
-                        <HelperTextItem variant="error">{errors.currentPrice}</HelperTextItem>
+                        <HelperTextItem variant="error">{errors.openPrice}</HelperTextItem>
                       </HelperText>
                     )}
                   </FormGroup>
@@ -228,7 +152,7 @@ export default function AddHoldingModal({ isOpen, onClose, onSaveHolding, holdin
                   <Stack hasGutter>
                     <StackItem>
                       <Button variant="primary" type="submit">
-                        {submitLabel}
+                        Add Holding
                       </Button>
                     </StackItem>
                     <StackItem>

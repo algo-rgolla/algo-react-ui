@@ -45,7 +45,14 @@ export interface AlgoPortfolioProduct {
   scanDate: string
   scanType: string | null
   atr: string | null
-  action: string | null
+  action: 'Buy' | 'Sell' | null
+}
+
+export interface AlgoPortfolioCreateRequest {
+  symbol: string
+  volume: number
+  action: 'Buy' | 'Sell'
+  openPrice: number
 }
 
 export interface PortfolioSummary {
