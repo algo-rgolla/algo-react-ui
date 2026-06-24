@@ -14,6 +14,7 @@ import {
   PageSidebar,
   PageSidebarBody,
 } from '@patternfly/react-core'
+import { BarsIcon } from '@patternfly/react-icons'
 
 interface MainLayoutProps {
   children: ReactNode
@@ -56,9 +57,8 @@ export function MainLayout({ children }: MainLayoutProps) {
               aria-pressed={isSidebarOpen}
               onClick={() => setIsSidebarOpen((prev) => !prev)}
               style={{ marginRight: 8 }}
-            >
-              {isSidebarOpen ? 'Hide menu' : 'Show menu'}
-            </Button>
+              icon={<BarsIcon />}
+            />
             <MastheadBrand>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <span

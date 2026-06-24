@@ -3,6 +3,8 @@ import * as Yup from 'yup'
 import {
   Button,
   Form,
+  FormSelect,
+  FormSelectOption,
   FormGroup,
   HelperText,
   HelperTextItem,
@@ -11,71 +13,116 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core'
-import type { AlgoPortfolioCreateRequest } from '../../../types/portfolio'
+import type { AlgoPortfolioProduct, AlgoPortfolioSaveRequest } from '../../../types/portfolio'
 import './AddHoldingModal.css'
 
 type HoldingFormValues = {
+  algoPortfolioId: number
   symbol: string
   volume: string
+  action: 'Buy' | 'Sell'
   openPrice: string
+  closePrice: string
 }
 
 const initialFormValues: HoldingFormValues = {
+  algoPortfolioId: 0,
   symbol: '',
   volume: '',
+  action: 'Buy',
   openPrice: '',
+  closePrice: '',
 }
 
 const holdingSchema = Yup.object({
+  algoPortfolioId: Yup.number().required(),
   symbol: Yup.string().trim().max(5, 'Symbol must be 5 characters or fewer.').required('Symbol is required.'),
   volume: Yup.number()
     .typeError('Volume must be a number.')
     .required('Volume is required.')
     .positive('Volume must be greater than 0.'),
+  action: Yup.mixed<'Buy' | 'Sell'>().oneOf(['Buy', 'Sell']).required('Action is required.'),
   openPrice: Yup.number()
     .typeError('Open price must be a number.')
     .required('Open price is required.')
     .positive('Open price must be greater than 0.'),
+  closePrice: Yup.number().when('action', {
+    is: 'Sell',
+    then: (schema) =>
+      schema
+        .transform((value, originalValue) => (originalValue === '' ? NaN : value))
+        .typeError('Close price must be a number.')
+        .required('Close price is required when action is Sell.')
+        .positive('Close price must be greater than 0.'),
+    otherwise: (schema) => schema.transform(() => undefined).notRequired(),
+  }),
 })
 
 type AddHoldingModalProps = {
   isOpen: boolean
+  mode: 'add' | 'edit'
+  holding?: AlgoPortfolioProduct | null
   onClose: () => void
-  onSaveHolding: (holding: AlgoPortfolioCreateRequest) => void
+  onSaveHolding: (holding: AlgoPortfolioSaveRequest) => Promise<void>
 }
 
-function computeHoldingFromForm(form: HoldingFormValues): AlgoPortfolioCreateRequest {
+function getInitialValues(holding?: AlgoPortfolioProduct | null): HoldingFormValues {
+  if (!holding) {
+    return initialFormValues
+  }
+
   return {
-    symbol: form.symbol.trim().toUpperCase(),
-    volume: Number(form.volume),
-    action: 'Buy',
-    openPrice: Number(form.openPrice),
+    algoPortfolioId: holding.id > 0 ? holding.id : holding.portfolioId,
+    symbol: holding.symbol,
+    volume: holding.volume,
+    action: holding.action === 'Sell' ? 'Sell' : 'Buy',
+    openPrice: holding.openPrice,
+    closePrice: holding.closePrice ?? '',
   }
 }
 
-export default function AddHoldingModal({ isOpen, onClose, onSaveHolding }: AddHoldingModalProps) {
+function computeHoldingFromForm(form: HoldingFormValues): AlgoPortfolioSaveRequest {
+  return {
+    algoPortfolioId: form.algoPortfolioId,
+    symbol: form.symbol.trim().toUpperCase(),
+    volume: Number(form.volume),
+    action: form.action,
+    openPrice: Number(form.openPrice),
+    closePrice: form.action === 'Sell' ? Number(form.closePrice) : 0,
+  }
+}
+
+export default function AddHoldingModal({ isOpen, mode, holding, onClose, onSaveHolding }: AddHoldingModalProps) {
+  const title = mode === 'edit' ? 'Edit Holding' : 'Add Holding'
+  const submitLabel = mode === 'edit' ? 'Save Changes' : 'Add Holding'
+
   return (
     <Modal
       className="add-holding-modal"
-      title="Add Holding"
+      title={title}
       isOpen={isOpen}
       onClose={onClose}
       aria-label="Holding modal"
       variant="small"
     >
       <Formik
-        initialValues={initialFormValues}
+        initialValues={getInitialValues(holding)}
+        enableReinitialize
         validationSchema={holdingSchema}
-        onSubmit={(values, helpers) => {
-          onSaveHolding(computeHoldingFromForm(values))
-          helpers.resetForm()
+        onSubmit={async (values, helpers) => {
+          await onSaveHolding(computeHoldingFromForm(values))
+          if (mode === 'add') {
+            helpers.resetForm()
+          }
           onClose()
         }}
       >
-        {({ values, errors, touched, handleBlur, handleSubmit, setFieldValue, resetForm }) => {
+        {({ values, errors, touched, handleBlur, handleSubmit, isSubmitting, setFieldValue, resetForm }) => {
           const symbolHasError = Boolean(touched.symbol && errors.symbol)
           const volumeHasError = Boolean(touched.volume && errors.volume)
+          const actionHasError = Boolean(touched.action && errors.action)
           const openPriceHasError = Boolean(touched.openPrice && errors.openPrice)
+          const closePriceHasError = Boolean(touched.closePrice && errors.closePrice)
 
           return (
             <Form
@@ -128,6 +175,32 @@ export default function AddHoldingModal({ isOpen, onClose, onSaveHolding }: AddH
                 </StackItem>
 
                 <StackItem>
+                  <FormGroup label="Action" fieldId="portfolio-action" isRequired>
+                    <FormSelect
+                      id="portfolio-action"
+                      name="action"
+                      value={values.action}
+                      onChange={(_, value) => {
+                        const selectedAction = String(value) === 'Sell' ? 'Sell' : 'Buy'
+                        setFieldValue('action', selectedAction)
+                        if (selectedAction === 'Buy') {
+                          setFieldValue('closePrice', '')
+                        }
+                      }}
+                      onBlur={handleBlur}
+                    >
+                      <FormSelectOption value="Buy" label="Buy" />
+                      <FormSelectOption value="Sell" label="Sell" />
+                    </FormSelect>
+                    {actionHasError && (
+                      <HelperText>
+                        <HelperTextItem variant="error">{errors.action}</HelperTextItem>
+                      </HelperText>
+                    )}
+                  </FormGroup>
+                </StackItem>
+
+                <StackItem>
                   <FormGroup label="Open Price" fieldId="portfolio-open-price" isRequired>
                     <TextInput
                       id="portfolio-open-price"
@@ -148,11 +221,34 @@ export default function AddHoldingModal({ isOpen, onClose, onSaveHolding }: AddH
                   </FormGroup>
                 </StackItem>
 
+                {values.action === 'Sell' && (
+                  <StackItem>
+                    <FormGroup label="Close Price" fieldId="portfolio-close-price" isRequired>
+                      <TextInput
+                        id="portfolio-close-price"
+                        name="closePrice"
+                        type="number"
+                        min={1}
+                        value={values.closePrice}
+                        onChange={(_, value) => setFieldValue('closePrice', String(value))}
+                        onBlur={handleBlur}
+                        placeholder="150.00"
+                        isRequired
+                      />
+                      {closePriceHasError && (
+                        <HelperText>
+                          <HelperTextItem variant="error">{errors.closePrice}</HelperTextItem>
+                        </HelperText>
+                      )}
+                    </FormGroup>
+                  </StackItem>
+                )}
+
                 <StackItem>
                   <Stack hasGutter>
                     <StackItem>
-                      <Button variant="primary" type="submit">
-                        Add Holding
+                      <Button variant="primary" type="submit" isLoading={isSubmitting} isDisabled={isSubmitting}>
+                        {submitLabel}
                       </Button>
                     </StackItem>
                     <StackItem>

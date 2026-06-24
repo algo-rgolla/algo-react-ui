@@ -48,11 +48,13 @@ export interface AlgoPortfolioProduct {
   action: 'Buy' | 'Sell' | null
 }
 
-export interface AlgoPortfolioCreateRequest {
+export interface AlgoPortfolioSaveRequest {
+  algoPortfolioId: number
   symbol: string
   volume: number
   action: 'Buy' | 'Sell'
   openPrice: number
+  closePrice: number
 }
 
 export interface PortfolioSummary {

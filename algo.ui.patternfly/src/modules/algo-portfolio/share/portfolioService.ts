@@ -1,5 +1,5 @@
 import apiClient from '../../../share/api/axios'
-import type { AlgoPortfolioCreateRequest, AlgoPortfolioProduct } from '../../../types/portfolio'
+import type { AlgoPortfolioProduct, AlgoPortfolioSaveRequest } from '../../../types/portfolio'
 
 interface GetHoldingsResponse {
   products: AlgoPortfolioProduct[]
@@ -13,11 +13,11 @@ export async function getHoldings(signal?: AbortSignal): Promise<AlgoPortfolioPr
   return response.data.products ?? []
 }
 
-export async function createHolding(payload: AlgoPortfolioCreateRequest): Promise<void> {
+export async function saveHolding(payload: AlgoPortfolioSaveRequest): Promise<void> {
   try {
     await apiClient.post('/api/AlgoPortfolio/add-edit-algo-portfolio', payload)
   } catch (error) {
-    console.error('createHolding error:', {
+    console.error('saveHolding error:', {
       message: error instanceof Error ? error.message : String(error),
       status: error && typeof error === 'object' && 'response' in error ? (error as { response?: { status: number; data: unknown } }).response?.status : undefined,
       data: error && typeof error === 'object' && 'response' in error ? (error as { response?: { status: number; data: unknown } }).response?.data : undefined,
@@ -25,10 +25,6 @@ export async function createHolding(payload: AlgoPortfolioCreateRequest): Promis
     })
     throw error
   }
-}
-
-export async function updateHolding(_: AlgoPortfolioProduct): Promise<AlgoPortfolioProduct> {
-  throw new Error('updateHolding is not implemented.')
 }
 
 export async function deleteHolding(_: number): Promise<void> {

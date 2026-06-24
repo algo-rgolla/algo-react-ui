@@ -20,6 +20,7 @@ const negativeColor = '#f35a5a'
 
 interface HoldingsTableProps {
   holdings: (StockHolding | AlgoPortfolioProduct)[]
+  onEditApiHolding?: (holding: AlgoPortfolioProduct) => void
   onEdit?: (holding: StockHolding) => void
   onDelete?: (ticker: string) => void
 }
@@ -30,9 +31,11 @@ function isPortfolioProduct(
   return 'symbol' in holding
 }
 
-export default function HoldingsTable({ holdings, onEdit, onDelete }: HoldingsTableProps) {
+export default function HoldingsTable({ holdings, onEditApiHolding, onEdit, onDelete }: HoldingsTableProps) {
   const hasApiRows = holdings.length > 0 && isPortfolioProduct(holdings[0])
-  const showActions = !hasApiRows && Boolean(onEdit || onDelete)
+  const showApiActions = hasApiRows && Boolean(onEditApiHolding)
+  const showLegacyActions = !hasApiRows && Boolean(onEdit || onDelete)
+  const showActions = showApiActions || showLegacyActions
 
   return (
     <Table aria-label="Holdings table" variant="compact">
@@ -42,6 +45,7 @@ export default function HoldingsTable({ holdings, onEdit, onDelete }: HoldingsTa
             <>
               <Th>Symbol</Th>
               <Th>Name</Th>
+              <Th style={{ textAlign: 'right' }}>Volume</Th>
               <Th>Open Date</Th>
               <Th style={{ textAlign: 'right' }}>Profit / Loss</Th>
             </>
@@ -70,12 +74,22 @@ export default function HoldingsTable({ holdings, onEdit, onDelete }: HoldingsTa
                 <Td dataLabel="Name" style={{ textAlign: 'left' }}>
                   {holding.name}
                 </Td>
+                <Td dataLabel="Volume" style={{ textAlign: 'right' }}>
+                  {Number(holding.volume).toLocaleString()}
+                </Td>
                 <Td dataLabel="Open Date" style={{ textAlign: 'left' }}>
                   {holding.openDate}
                 </Td>
                 <Td dataLabel="Profit / Loss" style={{ textAlign: 'right' }}>
                   {holding.profitLoss}
                 </Td>
+                {showApiActions && (
+                  <Td style={{ textAlign: 'right' }}>
+                    <Button variant="secondary" size="sm" onClick={() => onEditApiHolding?.(holding)}>
+                      Edit
+                    </Button>
+                  </Td>
+                )}
               </Tr>
             )
           }
@@ -106,7 +120,7 @@ export default function HoldingsTable({ holdings, onEdit, onDelete }: HoldingsTa
               <Td dataLabel="Total Return (%)" style={{ textAlign: 'right', color: returnColor, fontWeight: 600 }}>
                 {formattedReturn}
               </Td>
-              {showActions && (
+              {showLegacyActions && (
                 <Td style={{ textAlign: 'right' }}>
                   {onEdit && (
                     <Button
