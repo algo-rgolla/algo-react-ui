@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Divider, PageSection, Stack, StackItem, Title } from '@patternfly/react-core'
 import axios from 'axios'
+import { getHoldings } from './share/portfolioService'
 import type { AlgoPortfolioProduct } from '../../types/portfolio'
 import HoldingsTable from './components/HoldingsTable'
 
-interface AlgoPortfolioResponse {
-  products: AlgoPortfolioProduct[]
+function isAbortError(error: unknown): boolean {
+  return (
+    axios.isCancel(error) ||
+    (error instanceof DOMException && error.name === 'AbortError') ||
+    (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'ERR_CANCELED')
+  )
 }
 
 export default function AlgoPortfolioPage() {
@@ -14,34 +19,37 @@ export default function AlgoPortfolioPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const controller = new AbortController()
+    let isMounted = true
 
-    async function fetchHoldings() {
+    async function loadHoldings() {
       setIsLoading(true)
       setError(null)
 
       try {
-        const response = await axios.get<AlgoPortfolioResponse>(
-          '/api/AlgoPortfolio/algo-portfolio-list',
-          { signal: controller.signal },
-        )
-        setHoldings(response.data.products ?? [])
+        const products = await getHoldings()
+        if (isMounted) {
+          setHoldings(products)
+        }
       } catch (fetchError) {
-        if (axios.isCancel(fetchError)) {
+        if (isAbortError(fetchError)) {
           return
         }
 
         console.error('AlgoPortfolio fetch error:', fetchError)
-        setError('Unable to load portfolio holdings. Please try again.')
+        if (isMounted) {
+          setError('Unable to load portfolio holdings. Please try again.')
+        }
       } finally {
-        setIsLoading(false)
+        if (isMounted) {
+          setIsLoading(false)
+        }
       }
     }
 
-    void fetchHoldings()
+    void loadHoldings()
 
     return () => {
-      controller.abort()
+      isMounted = false
     }
   }, [])
 
