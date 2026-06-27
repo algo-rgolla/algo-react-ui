@@ -13,7 +13,8 @@ export default defineConfig({
         port: 65231,
         proxy: {
             '/api': {
-                target: 'https://localhost:7033',
+                //target: 'https://localhost:7033',
+                target: 'http://algoapi/',
                 changeOrigin: true,
                 secure: false,
             },

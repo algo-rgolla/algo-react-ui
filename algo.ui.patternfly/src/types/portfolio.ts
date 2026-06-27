@@ -64,3 +64,36 @@ export interface PortfolioSummary {
   totalProfit: number
   cashBalance: number
 }
+
+export interface Product {
+  id: number;
+  portfolioId: number;
+  symbol: string;
+  exchange: string;
+  name: string;
+  volume: string;
+  openPrice: string;
+  openDate: string;
+  closeDate: string;
+  close: string;
+  change: string;
+  closePrice: string;
+  changePercent: string;
+  status: string;
+  marketCap: string | null;
+  industry: string;
+  sector: string;
+
+  profitLoss: string;
+  comments: string;
+  tradeDays: string;
+  sellReason: string;
+  buyReason: string;
+  stopLoss: string;
+
+  // WatchList
+  scanDate: string; // ISO date string from the API
+  scanType: string;
+  atr: string;
+  action: string;
+}

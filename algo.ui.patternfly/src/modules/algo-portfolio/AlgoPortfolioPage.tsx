@@ -5,6 +5,7 @@ import { getHoldings, saveHolding } from './share/portfolioService'
 import type { AlgoPortfolioProduct, AlgoPortfolioSaveRequest } from '../../types/portfolio'
 import HoldingsTable from './components/HoldingsTable'
 import AddHoldingModal from './components/AddHoldingModal'
+import './AlgoPortfolioPage.css'
 
 function isAbortError(error: unknown): boolean {
   return (
@@ -98,7 +99,7 @@ export default function AlgoPortfolioPage() {
           <StackItem>
             <Stack hasGutter>
               <StackItem>
-                <Title headingLevel="h1" size="2xl" style={{ marginBottom: 8 }}>
+                <Title headingLevel="h1" size="2xl" className="algo-portfolio-page__title">
                   Algo Portfolio
                 </Title>
                 <p>View the current portfolio list as returned from the backend API.</p>
@@ -119,7 +120,7 @@ export default function AlgoPortfolioPage() {
             {isLoading ? (
               <p>Loading portfolio holdings...</p>
             ) : error ? (
-              <p style={{ color: '#c9190b' }}>{error}</p>
+              <p className="algo-portfolio-page__error">{error}</p>
             ) : (
               <HoldingsTable holdings={holdings} onEditApiHolding={openEditHoldingModal} />
             )}
