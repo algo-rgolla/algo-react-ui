@@ -18,3 +18,9 @@ export async function getWatchlistProducts(
 
   return response.data.products ?? [];
 }
+
+export async function deleteWatchlistProduct(productId: number): Promise<void> {
+  await apiClient.delete(
+    `${API_ENDPOINTS.watchlistDeleteByIdBase}/${productId}`,
+  );
+}
