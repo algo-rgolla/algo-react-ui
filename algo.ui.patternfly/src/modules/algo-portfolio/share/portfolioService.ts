@@ -1,32 +1,51 @@
-import apiClient from '../../../share/api/axios'
-import type { AlgoPortfolioProduct, AlgoPortfolioSaveRequest } from '../../../types/portfolio'
+import apiClient from "../../../share/api/axios";
+import { API_ENDPOINTS } from "../../../share/constants";
+import type {
+  AlgoPortfolioProduct,
+  AlgoPortfolioSaveRequest,
+} from "../../../types/portfolio";
 
 interface GetHoldingsResponse {
-  products: AlgoPortfolioProduct[]
+  products: AlgoPortfolioProduct[];
 }
 
-export async function getHoldings(signal?: AbortSignal): Promise<AlgoPortfolioProduct[]> {
-  const response = await apiClient.get<GetHoldingsResponse>('/api/AlgoPortfolio/algo-portfolio-list', {
-    signal,
-  })
+export async function getHoldings(
+  signal?: AbortSignal,
+): Promise<AlgoPortfolioProduct[]> {
+  const response = await apiClient.get<GetHoldingsResponse>(
+    API_ENDPOINTS.algoPortfolioList,
+    {
+      signal,
+    },
+  );
 
-  return response.data.products ?? []
+  return response.data.products ?? [];
 }
 
-export async function saveHolding(payload: AlgoPortfolioSaveRequest): Promise<void> {
+export async function saveHolding(
+  payload: AlgoPortfolioSaveRequest,
+): Promise<void> {
   try {
-    await apiClient.post('/api/AlgoPortfolio/add-edit-algo-portfolio', payload)
+    await apiClient.post(API_ENDPOINTS.addEditAlgoPortfolio, payload);
   } catch (error) {
-    console.error('saveHolding error:', {
+    console.error("saveHolding error:", {
       message: error instanceof Error ? error.message : String(error),
-      status: error && typeof error === 'object' && 'response' in error ? (error as { response?: { status: number; data: unknown } }).response?.status : undefined,
-      data: error && typeof error === 'object' && 'response' in error ? (error as { response?: { status: number; data: unknown } }).response?.data : undefined,
+      status:
+        error && typeof error === "object" && "response" in error
+          ? (error as { response?: { status: number; data: unknown } }).response
+              ?.status
+          : undefined,
+      data:
+        error && typeof error === "object" && "response" in error
+          ? (error as { response?: { status: number; data: unknown } }).response
+              ?.data
+          : undefined,
       payload,
-    })
-    throw error
+    });
+    throw error;
   }
 }
 
 export async function deleteHolding(_: number): Promise<void> {
-  throw new Error('deleteHolding is not implemented.')
+  throw new Error("deleteHolding is not implemented.");
 }
