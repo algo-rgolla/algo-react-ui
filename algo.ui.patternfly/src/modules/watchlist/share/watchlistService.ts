@@ -10,7 +10,7 @@ export async function getWatchlistProducts(
   signal?: AbortSignal,
 ): Promise<AlgoPortfolioProduct[]> {
   const response = await apiClient.get<GetWatchlistResponse>(
-    API_ENDPOINTS.watchlistProducts,
+    API_ENDPOINTS.watchlistItemsBase,
     {
       signal,
     },
@@ -20,7 +20,5 @@ export async function getWatchlistProducts(
 }
 
 export async function deleteWatchlistProduct(productId: number): Promise<void> {
-  await apiClient.delete(
-    `${API_ENDPOINTS.watchlistDeleteByIdBase}/${productId}`,
-  );
+  await apiClient.delete(`${API_ENDPOINTS.watchlistItemsBase}/${productId}`);
 }
