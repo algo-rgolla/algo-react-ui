@@ -1,5 +1,11 @@
 export interface ApiErrorResponse {
   message: string;
+  error?: string;
+}
+
+export interface ApiSuccessResponse {
+  message: string;
+  success?: boolean;
 }
 
 export interface ApiDeleteSuccessResponse {

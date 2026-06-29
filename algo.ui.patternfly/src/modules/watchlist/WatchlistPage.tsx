@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { Alert, AlertGroup, PageSection, Stack, StackItem, Title } from '@patternfly/react-core'
+import { Alert, AlertGroup, Button, PageSection, Stack, StackItem, Title } from '@patternfly/react-core'
 import type { AlgoPortfolioProduct } from '../../types/portfolio'
 import WatchListTable from './components/WatchListTable'
-import { getAllWatchlistItems, deleteWatchlistItem } from '../../share/api/services/watchlistApi'
+import WatchlistItemModal from './components/WatchlistItemModal'
+import {
+  createWatchlistItem,
+  getAllWatchlistItems,
+  updateWatchlistItem,
+  deleteWatchlistItem,
+  type WatchlistUpsertRequest,
+} from '../../share/api/services/watchlistApi'
 import { ApiHttpError } from '../../share/api/types'
 
 function isAbortError(error: unknown): boolean {
@@ -19,8 +26,12 @@ export default function WatchlistPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null)
-  const [showDeleteSuccessToast, setShowDeleteSuccessToast] = useState(false)
-  const [successMessage, setSuccessMessage] = useState<string>('Successfully Deleted')
+  const [isWatchlistModalOpen, setIsWatchlistModalOpen] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState<AlgoPortfolioProduct | null>(null)
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
+  const [showErrorToast, setShowErrorToast] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string>('Success')
+  const [modalError, setModalError] = useState<string | null>(null)
 
   useEffect(() => {
     const abortController = new AbortController()
@@ -56,18 +67,76 @@ export default function WatchlistPage() {
   }, [])
 
   useEffect(() => {
-    if (!showDeleteSuccessToast) {
+    if (!showSuccessToast) {
       return
     }
 
     const timeoutId = window.setTimeout(() => {
-      setShowDeleteSuccessToast(false)
+      setShowSuccessToast(false)
     }, 3000)
 
     return () => {
       window.clearTimeout(timeoutId)
     }
-  }, [showDeleteSuccessToast])
+  }, [showSuccessToast])
+
+  useEffect(() => {
+    if (!showErrorToast) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setShowErrorToast(false)
+    }, 4000)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [showErrorToast])
+
+  function openCreateModal() {
+    setModalError(null)
+    setError(null)
+    setSelectedProduct(null)
+    setIsWatchlistModalOpen(true)
+  }
+
+  function openEditModal(product: AlgoPortfolioProduct) {
+    setModalError(null)
+    setError(null)
+    setSelectedProduct(product)
+    setIsWatchlistModalOpen(true)
+  }
+
+  async function handleSaveWatchlistItem(payload: WatchlistUpsertRequest) {
+    setModalError(null)
+
+    try {
+      if (selectedProduct?.id) {
+        await updateWatchlistItem(selectedProduct.id, payload)
+        setSuccessMessage(`Watchlist item ${payload.symbol} updated successfully.`)
+      } else {
+        await createWatchlistItem(payload)
+        setSuccessMessage(`Watchlist item ${payload.symbol} created successfully.`)
+      }
+
+      const watchlistProducts = await getAllWatchlistItems()
+      setProducts(watchlistProducts)
+      setShowSuccessToast(true)
+      setSelectedProduct(null)
+      setError(null)
+    } catch (saveError) {
+      console.error('Watchlist save error:', saveError)
+      const message =
+        saveError instanceof ApiHttpError
+          ? saveError.message
+          : 'Unable to save watchlist item. Please try again.'
+      setModalError(message)
+      setError(message)
+      setShowErrorToast(true)
+      throw saveError
+    }
+  }
 
   async function handleDeleteProduct(product: AlgoPortfolioProduct) {
     const isConfirmed = window.confirm(`Delete watchlist item ${product.symbol}?`)
@@ -82,7 +151,7 @@ export default function WatchlistPage() {
       const response = await deleteWatchlistItem(product.id)
       setProducts((currentProducts) => currentProducts.filter((currentProduct) => currentProduct.id !== product.id))
       setSuccessMessage(response.message)
-      setShowDeleteSuccessToast(true)
+      setShowSuccessToast(true)
     } catch (deleteError) {
       console.error('Watchlist delete error:', deleteError)
       const message =
@@ -90,6 +159,7 @@ export default function WatchlistPage() {
           ? deleteError.message
           : 'Unable to delete watchlist product. Please try again.'
       setError(message)
+      setShowErrorToast(true)
     } finally {
       setDeletingProductId(null)
     }
@@ -97,9 +167,15 @@ export default function WatchlistPage() {
 
   return (
     <>
-      {showDeleteSuccessToast && (
+      {showSuccessToast && (
         <AlertGroup isToast>
           <Alert variant="success" title={successMessage} />
+        </AlertGroup>
+      )}
+
+      {showErrorToast && error && (
+        <AlertGroup isToast>
+          <Alert variant="danger" title={error} />
         </AlertGroup>
       )}
 
@@ -111,6 +187,11 @@ export default function WatchlistPage() {
             </Title>
           </StackItem>
           <StackItem>
+            <Button variant="primary" onClick={openCreateModal}>
+              Add Watchlist Item
+            </Button>
+          </StackItem>
+          <StackItem>
             {isLoading ? (
               <p>Loading watchlist...</p>
             ) : error ? (
@@ -118,6 +199,7 @@ export default function WatchlistPage() {
             ) : (
               <WatchListTable
                 products={products}
+                onEditProduct={openEditModal}
                 onDeleteProduct={handleDeleteProduct}
                 deletingProductId={deletingProductId}
               />
@@ -125,6 +207,19 @@ export default function WatchlistPage() {
           </StackItem>
         </Stack>
       </PageSection>
+
+      <WatchlistItemModal
+        isOpen={isWatchlistModalOpen}
+        mode={selectedProduct ? 'edit' : 'add'}
+        item={selectedProduct}
+        submitError={modalError}
+        onClose={() => {
+          setIsWatchlistModalOpen(false)
+          setSelectedProduct(null)
+          setModalError(null)
+        }}
+        onSave={handleSaveWatchlistItem}
+      />
     </>
   )
 }

@@ -27,6 +27,8 @@ export default function AlgoPortfolioPage() {
   const [isAddHoldingModalOpen, setIsAddHoldingModalOpen] = useState(false)
   const [selectedHolding, setSelectedHolding] = useState<AlgoPortfolioProduct | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [modalError, setModalError] = useState<string | null>(null)
+  const [showErrorToast, setShowErrorToast] = useState(false)
 
   async function loadHoldings() {
     setIsLoading(true)
@@ -71,12 +73,14 @@ export default function AlgoPortfolioPage() {
 
   function openAddHoldingModal() {
     setError(null)
+    setModalError(null)
     setSelectedHolding(null)
     setIsAddHoldingModalOpen(true)
   }
 
   function openEditHoldingModal(holding: AlgoPortfolioProduct) {
     setError(null)
+    setModalError(null)
     setSelectedHolding(holding)
     setIsAddHoldingModalOpen(true)
   }
@@ -84,6 +88,7 @@ export default function AlgoPortfolioPage() {
   async function handleSaveHolding(payload: AlgoPortfolioSaveRequest) {
     setIsLoading(true)
     setError(null)
+    setModalError(null)
 
     try {
       if (payload.algoPortfolioId > 0) {
@@ -109,6 +114,9 @@ export default function AlgoPortfolioPage() {
       const message =
         fetchError instanceof ApiHttpError ? fetchError.message : fallbackMessage
       setError(message)
+      setModalError(message)
+      setShowErrorToast(true)
+      throw fetchError
     } finally {
       setIsLoading(false)
     }
@@ -128,11 +136,31 @@ export default function AlgoPortfolioPage() {
     }
   }, [successMessage])
 
+  useEffect(() => {
+    if (!showErrorToast) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setShowErrorToast(false)
+    }, 4000)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [showErrorToast])
+
   return (
     <>
       {successMessage && (
         <AlertGroup isToast>
           <Alert variant="success" title={successMessage} />
+        </AlertGroup>
+      )}
+
+      {showErrorToast && error && (
+        <AlertGroup isToast>
+          <Alert variant="danger" title={error} />
         </AlertGroup>
       )}
 
@@ -177,9 +205,11 @@ export default function AlgoPortfolioPage() {
         isOpen={isAddHoldingModalOpen}
         mode={selectedHolding ? 'edit' : 'add'}
         holding={selectedHolding}
+        submitError={modalError}
         onClose={() => {
           setIsAddHoldingModalOpen(false)
           setSelectedHolding(null)
+          setModalError(null)
         }}
         onSaveHolding={handleSaveHolding}
       />

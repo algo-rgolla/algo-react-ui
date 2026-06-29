@@ -1,6 +1,7 @@
 import { Formik } from 'formik'
 import * as Yup from 'yup'
 import {
+  Alert,
   Button,
   Form,
   FormSelect,
@@ -68,6 +69,7 @@ type AddHoldingModalProps = {
   isOpen: boolean
   mode: 'add' | 'edit'
   holding?: AlgoPortfolioProduct | null
+  submitError?: string | null
   onClose: () => void
   onSaveHolding: (holding: AlgoPortfolioSaveRequest) => Promise<void>
 }
@@ -98,7 +100,7 @@ function computeHoldingFromForm(form: HoldingFormValues): AlgoPortfolioSaveReque
   }
 }
 
-export default function AddHoldingModal({ isOpen, mode, holding, onClose, onSaveHolding }: AddHoldingModalProps) {
+export default function AddHoldingModal({ isOpen, mode, holding, submitError, onClose, onSaveHolding }: AddHoldingModalProps) {
   const title = mode === 'edit' ? 'Edit Holding' : 'Add Holding'
   const submitLabel = mode === 'edit' ? 'Save Changes' : 'Add Holding'
 
@@ -138,6 +140,12 @@ export default function AddHoldingModal({ isOpen, mode, holding, onClose, onSave
               }}
             >
               <Stack hasGutter>
+                {submitError && (
+                  <StackItem>
+                    <Alert variant="danger" isInline title={submitError} />
+                  </StackItem>
+                )}
+
                 <StackItem>
                   <FormGroup label="Symbol" fieldId="portfolio-symbol" isRequired>
                     <TextInput
