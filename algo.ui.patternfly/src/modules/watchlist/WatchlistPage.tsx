@@ -1,30 +1,23 @@
 import { useEffect, useState } from 'react'
-import axios from 'axios'
 import { Alert, AlertGroup, Button, PageSection, Stack, StackItem, Title } from '@patternfly/react-core'
 import type { AlgoPortfolioProduct } from '../../types/portfolio'
 import WatchListTable from './components/WatchListTable'
 import WatchlistItemModal from './components/WatchlistItemModal'
 import {
-  createWatchlistItem,
-  getAllWatchlistItems,
-  updateWatchlistItem,
-  deleteWatchlistItem,
-  type WatchlistUpsertRequest,
-} from '../../share/api/services/watchlistApi'
-import { ApiHttpError } from '../../share/api/types'
-
-function isAbortError(error: unknown): boolean {
-  return (
-    axios.isCancel(error) ||
-    (error instanceof DOMException && error.name === 'AbortError') ||
-    (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'ERR_CANCELED')
-  )
-}
+  useCreateWatchlistItem,
+  useDeleteWatchlistItem,
+  useUpdateWatchlistItem,
+  useWatchlistItems,
+} from './hooks'
+import type { WatchlistUpsertRequest } from '../../share/api/services/watchlistApi'
 
 export default function WatchlistPage() {
-  const [products, setProducts] = useState<AlgoPortfolioProduct[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, loading: isLoading, error: fetchError, refetch } = useWatchlistItems()
+  const { createItem, error: createError } = useCreateWatchlistItem()
+  const { updateItem, error: updateError } = useUpdateWatchlistItem()
+  const { deleteItem, error: deleteError } = useDeleteWatchlistItem()
+
+  const [pageError, setPageError] = useState<string | null>(null)
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null)
   const [isWatchlistModalOpen, setIsWatchlistModalOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<AlgoPortfolioProduct | null>(null)
@@ -33,38 +26,8 @@ export default function WatchlistPage() {
   const [successMessage, setSuccessMessage] = useState<string>('Success')
   const [modalError, setModalError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const abortController = new AbortController()
-
-    async function loadProducts() {
-      setIsLoading(true)
-      setError(null)
-
-      try {
-        const watchlistProducts = await getAllWatchlistItems(abortController.signal)
-        setProducts(watchlistProducts)
-      } catch (fetchError) {
-        if (isAbortError(fetchError)) {
-          return
-        }
-
-        console.error('Watchlist fetch error:', fetchError)
-        const message =
-          fetchError instanceof ApiHttpError
-            ? fetchError.message
-            : 'Unable to load watchlist products. Please try again.'
-        setError(message)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    void loadProducts()
-
-    return () => {
-      abortController.abort()
-    }
-  }, [])
+  const error = modalError ?? pageError ?? createError ?? updateError ?? deleteError ?? fetchError
+  const products = data ?? []
 
   useEffect(() => {
     if (!showSuccessToast) {
@@ -96,14 +59,14 @@ export default function WatchlistPage() {
 
   function openCreateModal() {
     setModalError(null)
-    setError(null)
+    setPageError(null)
     setSelectedProduct(null)
     setIsWatchlistModalOpen(true)
   }
 
   function openEditModal(product: AlgoPortfolioProduct) {
     setModalError(null)
-    setError(null)
+    setPageError(null)
     setSelectedProduct(product)
     setIsWatchlistModalOpen(true)
   }
@@ -113,26 +76,23 @@ export default function WatchlistPage() {
 
     try {
       if (selectedProduct?.id) {
-        await updateWatchlistItem(selectedProduct.id, payload)
+        await updateItem(selectedProduct.id, payload)
         setSuccessMessage(`Watchlist item ${payload.symbol} updated successfully.`)
       } else {
-        await createWatchlistItem(payload)
+        await createItem(payload)
         setSuccessMessage(`Watchlist item ${payload.symbol} created successfully.`)
       }
 
-      const watchlistProducts = await getAllWatchlistItems()
-      setProducts(watchlistProducts)
+      await refetch()
       setShowSuccessToast(true)
       setSelectedProduct(null)
-      setError(null)
+      setPageError(null)
     } catch (saveError) {
       console.error('Watchlist save error:', saveError)
       const message =
-        saveError instanceof ApiHttpError
-          ? saveError.message
-          : 'Unable to save watchlist item. Please try again.'
+        saveError instanceof Error ? saveError.message : 'Unable to save watchlist item. Please try again.'
       setModalError(message)
-      setError(message)
+      setPageError(message)
       setShowErrorToast(true)
       throw saveError
     }
@@ -144,21 +104,21 @@ export default function WatchlistPage() {
       return
     }
 
-    setError(null)
+    setPageError(null)
     setDeletingProductId(product.id)
 
     try {
-      const response = await deleteWatchlistItem(product.id)
-      setProducts((currentProducts) => currentProducts.filter((currentProduct) => currentProduct.id !== product.id))
+      const response = await deleteItem(product.id)
+      await refetch()
       setSuccessMessage(response.message)
       setShowSuccessToast(true)
     } catch (deleteError) {
       console.error('Watchlist delete error:', deleteError)
       const message =
-        deleteError instanceof ApiHttpError
+        deleteError instanceof Error
           ? deleteError.message
           : 'Unable to delete watchlist product. Please try again.'
-      setError(message)
+      setPageError(message)
       setShowErrorToast(true)
     } finally {
       setDeletingProductId(null)

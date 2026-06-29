@@ -1,108 +1,61 @@
 import { useEffect, useState } from 'react'
 import { Alert, AlertGroup, Button, Divider, PageSection, Stack, StackItem, Title } from '@patternfly/react-core'
-import axios from 'axios'
-import {
-  createAlgoPortfolioItem,
-  getAllAlgoPortfolioItems,
-  updateAlgoPortfolioItem,
-} from '../../share/api/services/algoPortfolioApi'
-import { ApiHttpError } from '../../share/api/types'
 import type { AlgoPortfolioProduct, AlgoPortfolioSaveRequest } from '../../types/portfolio'
 import HoldingsTable from './components/HoldingsTable'
 import AddHoldingModal from './components/AddHoldingModal'
+import {
+  useAlgoPortfolioItems,
+  useCreateAlgoPortfolioItem,
+  useUpdateAlgoPortfolioItem,
+} from './hooks'
 import './AlgoPortfolioPage.css'
 
-function isAbortError(error: unknown): boolean {
-  return (
-    axios.isCancel(error) ||
-    (error instanceof DOMException && error.name === 'AbortError') ||
-    (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'ERR_CANCELED')
-  )
-}
-
 export default function AlgoPortfolioPage() {
-  const [holdings, setHoldings] = useState<AlgoPortfolioProduct[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, loading: isLoading, error: fetchError, refetch } = useAlgoPortfolioItems()
+  const { createItem, error: createError } = useCreateAlgoPortfolioItem()
+  const { updateItem, error: updateError } = useUpdateAlgoPortfolioItem()
+
+  const [pageError, setPageError] = useState<string | null>(null)
   const [isAddHoldingModalOpen, setIsAddHoldingModalOpen] = useState(false)
   const [selectedHolding, setSelectedHolding] = useState<AlgoPortfolioProduct | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [modalError, setModalError] = useState<string | null>(null)
   const [showErrorToast, setShowErrorToast] = useState(false)
 
-  async function loadHoldings() {
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const products = await getAllAlgoPortfolioItems()
-      setHoldings(products)
-    } catch (fetchError) {
-      if (isAbortError(fetchError)) {
-        return
-      }
-
-      console.error('AlgoPortfolio fetch error:', fetchError)
-      const message =
-        fetchError instanceof ApiHttpError
-          ? fetchError.message
-          : 'Unable to load portfolio holdings. Please try again.'
-      setError(message)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    let isMounted = true
-
-    async function loadHoldingsSafely() {
-      if (!isMounted) {
-        return
-      }
-
-      await loadHoldings()
-    }
-
-    void loadHoldingsSafely()
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
+  const error = modalError ?? pageError ?? createError ?? updateError ?? fetchError
+  const holdings = data ?? []
 
   function openAddHoldingModal() {
-    setError(null)
+    setPageError(null)
     setModalError(null)
     setSelectedHolding(null)
     setIsAddHoldingModalOpen(true)
   }
 
   function openEditHoldingModal(holding: AlgoPortfolioProduct) {
-    setError(null)
+    setPageError(null)
     setModalError(null)
     setSelectedHolding(holding)
     setIsAddHoldingModalOpen(true)
   }
 
   async function handleSaveHolding(payload: AlgoPortfolioSaveRequest) {
-    setIsLoading(true)
-    setError(null)
+    setPageError(null)
     setModalError(null)
 
     try {
       if (payload.algoPortfolioId > 0) {
-        await updateAlgoPortfolioItem(payload.algoPortfolioId, payload)
+        await updateItem(payload.algoPortfolioId, payload)
         setSuccessMessage(`Holding ${payload.symbol} updated successfully.`)
       } else {
-        await createAlgoPortfolioItem({
+        await createItem({
           ...payload,
           algoPortfolioId: 0,
         })
         setSuccessMessage(`Holding ${payload.symbol} created successfully.`)
       }
 
-      await loadHoldings()
+      await refetch()
       setIsAddHoldingModalOpen(false)
       setSelectedHolding(null)
     } catch (fetchError) {
@@ -112,13 +65,11 @@ export default function AlgoPortfolioPage() {
           ? 'Unable to update holding. Please try again.'
           : 'Unable to add holding. Please try again.'
       const message =
-        fetchError instanceof ApiHttpError ? fetchError.message : fallbackMessage
-      setError(message)
+        fetchError instanceof Error ? fetchError.message : fallbackMessage
+      setPageError(message)
       setModalError(message)
       setShowErrorToast(true)
       throw fetchError
-    } finally {
-      setIsLoading(false)
     }
   }
 
