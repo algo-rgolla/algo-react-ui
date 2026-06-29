@@ -42,10 +42,16 @@ const holdingSchema = Yup.object({
     .required('Volume is required.')
     .positive('Volume must be greater than 0.'),
   action: Yup.mixed<'Buy' | 'Sell'>().oneOf(['Buy', 'Sell']).required('Action is required.'),
-  openPrice: Yup.number()
-    .typeError('Open price must be a number.')
-    .required('Open price is required.')
-    .positive('Open price must be greater than 0.'),
+  openPrice: Yup.number().when('action', {
+    is: 'Buy',
+    then: (schema) =>
+      schema
+        .transform((value, originalValue) => (originalValue === '' ? NaN : value))
+        .typeError('Open price must be a number.')
+        .required('Open price is required when action is Buy.')
+        .positive('Open price must be greater than 0.'),
+    otherwise: (schema) => schema.transform(() => undefined).notRequired(),
+  }),
   closePrice: Yup.number().when('action', {
     is: 'Sell',
     then: (schema) =>
@@ -87,7 +93,7 @@ function computeHoldingFromForm(form: HoldingFormValues): AlgoPortfolioSaveReque
     symbol: form.symbol.trim().toUpperCase(),
     volume: Number(form.volume),
     action: form.action,
-    openPrice: Number(form.openPrice),
+    openPrice: form.action === 'Buy' ? Number(form.openPrice) : 0,
     closePrice: form.action === 'Sell' ? Number(form.closePrice) : 0,
   }
 }
@@ -200,26 +206,28 @@ export default function AddHoldingModal({ isOpen, mode, holding, onClose, onSave
                   </FormGroup>
                 </StackItem>
 
-                <StackItem>
-                  <FormGroup label="Open Price" fieldId="portfolio-open-price" isRequired>
-                    <TextInput
-                      id="portfolio-open-price"
-                      name="openPrice"
-                      type="number"
-                      min={1}
-                      value={values.openPrice}
-                      onChange={(_, value) => setFieldValue('openPrice', String(value))}
-                      onBlur={handleBlur}
-                      placeholder="140.00"
-                      isRequired
-                    />
-                    {openPriceHasError && (
-                      <HelperText>
-                        <HelperTextItem variant="error">{errors.openPrice}</HelperTextItem>
-                      </HelperText>
-                    )}
-                  </FormGroup>
-                </StackItem>
+                {values.action === 'Buy' && (
+                  <StackItem>
+                    <FormGroup label="Open Price" fieldId="portfolio-open-price" isRequired>
+                      <TextInput
+                        id="portfolio-open-price"
+                        name="openPrice"
+                        type="number"
+                        min={1}
+                        value={values.openPrice}
+                        onChange={(_, value) => setFieldValue('openPrice', String(value))}
+                        onBlur={handleBlur}
+                        placeholder="140.00"
+                        isRequired
+                      />
+                      {openPriceHasError && (
+                        <HelperText>
+                          <HelperTextItem variant="error">{errors.openPrice}</HelperTextItem>
+                        </HelperText>
+                      )}
+                    </FormGroup>
+                  </StackItem>
+                )}
 
                 {values.action === 'Sell' && (
                   <StackItem>

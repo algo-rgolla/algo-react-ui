@@ -3,7 +3,8 @@ import axios from 'axios'
 import { Alert, AlertGroup, PageSection, Stack, StackItem, Title } from '@patternfly/react-core'
 import type { AlgoPortfolioProduct } from '../../types/portfolio'
 import WatchListTable from './components/WatchListTable'
-import { deleteWatchlistProduct, getWatchlistProducts } from './share/watchlistService'
+import { getAllWatchlistItems, deleteWatchlistItem } from '../../share/api/services/watchlistApi'
+import { ApiHttpError } from '../../share/api/types'
 
 function isAbortError(error: unknown): boolean {
   return (
@@ -19,6 +20,7 @@ export default function WatchlistPage() {
   const [error, setError] = useState<string | null>(null)
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null)
   const [showDeleteSuccessToast, setShowDeleteSuccessToast] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string>('Successfully Deleted')
 
   useEffect(() => {
     const abortController = new AbortController()
@@ -28,7 +30,7 @@ export default function WatchlistPage() {
       setError(null)
 
       try {
-        const watchlistProducts = await getWatchlistProducts(abortController.signal)
+        const watchlistProducts = await getAllWatchlistItems(abortController.signal)
         setProducts(watchlistProducts)
       } catch (fetchError) {
         if (isAbortError(fetchError)) {
@@ -36,7 +38,11 @@ export default function WatchlistPage() {
         }
 
         console.error('Watchlist fetch error:', fetchError)
-        setError('Unable to load watchlist products. Please try again.')
+        const message =
+          fetchError instanceof ApiHttpError
+            ? fetchError.message
+            : 'Unable to load watchlist products. Please try again.'
+        setError(message)
       } finally {
         setIsLoading(false)
       }
@@ -73,12 +79,17 @@ export default function WatchlistPage() {
     setDeletingProductId(product.id)
 
     try {
-      await deleteWatchlistProduct(product.id)
+      const response = await deleteWatchlistItem(product.id)
       setProducts((currentProducts) => currentProducts.filter((currentProduct) => currentProduct.id !== product.id))
+      setSuccessMessage(response.message)
       setShowDeleteSuccessToast(true)
     } catch (deleteError) {
       console.error('Watchlist delete error:', deleteError)
-      setError('Unable to delete watchlist product. Please try again.')
+      const message =
+        deleteError instanceof ApiHttpError
+          ? deleteError.message
+          : 'Unable to delete watchlist product. Please try again.'
+      setError(message)
     } finally {
       setDeletingProductId(null)
     }
@@ -88,7 +99,7 @@ export default function WatchlistPage() {
     <>
       {showDeleteSuccessToast && (
         <AlertGroup isToast>
-          <Alert variant="success" title="Successfully Deleted" />
+          <Alert variant="success" title={successMessage} />
         </AlertGroup>
       )}
 

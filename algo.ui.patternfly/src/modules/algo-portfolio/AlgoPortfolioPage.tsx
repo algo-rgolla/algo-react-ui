@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Button, Divider, PageSection, Stack, StackItem, Title } from '@patternfly/react-core'
+import { Alert, AlertGroup, Button, Divider, PageSection, Stack, StackItem, Title } from '@patternfly/react-core'
 import axios from 'axios'
-import { getHoldings, saveHolding } from './share/portfolioService'
+import {
+  createAlgoPortfolioItem,
+  getAllAlgoPortfolioItems,
+  updateAlgoPortfolioItem,
+} from '../../share/api/services/algoPortfolioApi'
+import { ApiHttpError } from '../../share/api/types'
 import type { AlgoPortfolioProduct, AlgoPortfolioSaveRequest } from '../../types/portfolio'
 import HoldingsTable from './components/HoldingsTable'
 import AddHoldingModal from './components/AddHoldingModal'
@@ -21,13 +26,14 @@ export default function AlgoPortfolioPage() {
   const [error, setError] = useState<string | null>(null)
   const [isAddHoldingModalOpen, setIsAddHoldingModalOpen] = useState(false)
   const [selectedHolding, setSelectedHolding] = useState<AlgoPortfolioProduct | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   async function loadHoldings() {
     setIsLoading(true)
     setError(null)
 
     try {
-      const products = await getHoldings()
+      const products = await getAllAlgoPortfolioItems()
       setHoldings(products)
     } catch (fetchError) {
       if (isAbortError(fetchError)) {
@@ -35,7 +41,11 @@ export default function AlgoPortfolioPage() {
       }
 
       console.error('AlgoPortfolio fetch error:', fetchError)
-      setError('Unable to load portfolio holdings. Please try again.')
+      const message =
+        fetchError instanceof ApiHttpError
+          ? fetchError.message
+          : 'Unable to load portfolio holdings. Please try again.'
+      setError(message)
     } finally {
       setIsLoading(false)
     }
@@ -60,11 +70,13 @@ export default function AlgoPortfolioPage() {
   }, [])
 
   function openAddHoldingModal() {
+    setError(null)
     setSelectedHolding(null)
     setIsAddHoldingModalOpen(true)
   }
 
   function openEditHoldingModal(holding: AlgoPortfolioProduct) {
+    setError(null)
     setSelectedHolding(holding)
     setIsAddHoldingModalOpen(true)
   }
@@ -74,26 +86,56 @@ export default function AlgoPortfolioPage() {
     setError(null)
 
     try {
-      await saveHolding(payload)
+      if (payload.algoPortfolioId > 0) {
+        await updateAlgoPortfolioItem(payload.algoPortfolioId, payload)
+        setSuccessMessage(`Holding ${payload.symbol} updated successfully.`)
+      } else {
+        await createAlgoPortfolioItem({
+          ...payload,
+          algoPortfolioId: 0,
+        })
+        setSuccessMessage(`Holding ${payload.symbol} created successfully.`)
+      }
+
       await loadHoldings()
       setIsAddHoldingModalOpen(false)
       setSelectedHolding(null)
     } catch (fetchError) {
-      const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError)
-      const statusCode = fetchError && typeof fetchError === 'object' && 'response' in fetchError ? (fetchError as { response?: { status: number } }).response?.status : undefined
-      console.error('AlgoPortfolio save error:', { errorMessage, statusCode, fetchError, payload })
-      setError(
+      console.error('AlgoPortfolio save error:', fetchError)
+      const fallbackMessage =
         payload.algoPortfolioId > 0
-          ? `Unable to update holding${statusCode ? ` (${statusCode})` : ''}. Please try again.`
-          : `Unable to add holding${statusCode ? ` (${statusCode})` : ''}. Please try again.`,
-      )
+          ? 'Unable to update holding. Please try again.'
+          : 'Unable to add holding. Please try again.'
+      const message =
+        fetchError instanceof ApiHttpError ? fetchError.message : fallbackMessage
+      setError(message)
     } finally {
       setIsLoading(false)
     }
   }
 
+  useEffect(() => {
+    if (!successMessage) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setSuccessMessage(null)
+    }, 3000)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [successMessage])
+
   return (
     <>
+      {successMessage && (
+        <AlertGroup isToast>
+          <Alert variant="success" title={successMessage} />
+        </AlertGroup>
+      )}
+
       <PageSection variant="secondary" padding={{ default: 'padding' }}>
         <Stack hasGutter>
           <StackItem>
