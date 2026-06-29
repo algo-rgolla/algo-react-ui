@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { API_ENDPOINTS } from '../../constants'
 import { ApiHttpError } from '../types'
 import {
   createAlgoPortfolioItem,
@@ -71,7 +72,7 @@ describe('algoPortfolioApi', () => {
     })
 
     await expect(getAllAlgoPortfolioItems()).resolves.toEqual([samplePortfolioItem])
-    expect(apiClientMock.get).toHaveBeenCalledWith('/api/algoportfolio', { signal: undefined })
+    expect(apiClientMock.get).toHaveBeenCalledWith(API_ENDPOINTS.algoPortfolioBase, { signal: undefined })
   })
 
   it('fetches a single portfolio item by id', async () => {
@@ -81,7 +82,7 @@ describe('algoPortfolioApi', () => {
     })
 
     await expect(getAlgoPortfolioItemById(15)).resolves.toEqual(samplePortfolioItem)
-    expect(apiClientMock.get).toHaveBeenCalledWith('/api/algoportfolio/15', { signal: undefined })
+    expect(apiClientMock.get).toHaveBeenCalledWith(`${API_ENDPOINTS.algoPortfolioBase}/15`, { signal: undefined })
   })
 
   it('fetches portfolio history with query params', async () => {
@@ -92,7 +93,7 @@ describe('algoPortfolioApi', () => {
     })
 
     await expect(getAlgoPortfolioHistory(params)).resolves.toEqual([samplePortfolioItem])
-    expect(apiClientMock.get).toHaveBeenCalledWith('/api/algoportfolio/history', {
+    expect(apiClientMock.get).toHaveBeenCalledWith(API_ENDPOINTS.algoPortfolioHistory, {
       params,
       signal: undefined,
     })
@@ -105,7 +106,7 @@ describe('algoPortfolioApi', () => {
     })
 
     await expect(createAlgoPortfolioItem(samplePayload)).resolves.toEqual(samplePortfolioItem)
-    expect(apiClientMock.post).toHaveBeenCalledWith('/api/algoportfolio', {
+    expect(apiClientMock.post).toHaveBeenCalledWith(API_ENDPOINTS.algoPortfolioBase, {
       ...samplePayload,
       algoPortfolioId: 0,
     })
@@ -118,7 +119,7 @@ describe('algoPortfolioApi', () => {
     })
 
     await expect(updateAlgoPortfolioItem(15, samplePayload)).resolves.toEqual(samplePortfolioItem)
-    expect(apiClientMock.put).toHaveBeenCalledWith('/api/algoportfolio/15', samplePayload)
+    expect(apiClientMock.put).toHaveBeenCalledWith(`${API_ENDPOINTS.algoPortfolioBase}/15`, samplePayload)
   })
 
   it('deletes a portfolio item through the DELETE endpoint', async () => {
@@ -129,7 +130,7 @@ describe('algoPortfolioApi', () => {
     })
 
     await expect(deleteAlgoPortfolioItem(15)).resolves.toEqual(response)
-    expect(apiClientMock.delete).toHaveBeenCalledWith('/api/algoportfolio/15')
+    expect(apiClientMock.delete).toHaveBeenCalledWith(`${API_ENDPOINTS.algoPortfolioBase}/15`)
   })
 
   it('propagates 400 create errors', async () => {

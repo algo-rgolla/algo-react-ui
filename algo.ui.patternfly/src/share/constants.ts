@@ -1,5 +1,5 @@
 export const API_ENDPOINTS = {
-  algoPortfolioBase: "/api/algoportfolio",
-  algoPortfolioHistory: "/api/algoportfolio/history",
+  algoPortfolioBase: "/api/algo-portfolio",
+  algoPortfolioHistory: "/api/algo-portfolio/history",
   watchlistItemsBase: "/api/watchlist-items",
 } as const;

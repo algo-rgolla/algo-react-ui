@@ -18,6 +18,10 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
     if (axios.isAxiosError(error)) {
+      if (error.code === 'ERR_CANCELED' || axios.isCancel(error)) {
+        return Promise.reject(error)
+      }
+
       const status = error.response?.status
       const data = error.response?.data
       const message =
