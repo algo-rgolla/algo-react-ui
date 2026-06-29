@@ -15,6 +15,7 @@ import {
   PageSidebarBody,
 } from '@patternfly/react-core'
 import { BarsIcon } from '@patternfly/react-icons'
+import './MainLayout.css'
 
 interface MainLayoutProps {
   children: ReactNode
@@ -34,11 +35,11 @@ export function MainLayout({ children }: MainLayoutProps) {
                 Dashboard
               </NavLink>
             </NavItem>
-            <NavItem itemId={1} isActive={location.pathname === '/watchlist'}>
+            <NavItem itemId={1} isActive={location.pathname.startsWith('/watchlist')}>
               <NavLink to="/watchlist">Watchlist</NavLink>
             </NavItem>
-            <NavItem itemId={2} isActive={location.pathname === '/algo-portfolio'}>
-              <NavLink to="/algo-portfolio">Algo Portfolio</NavLink>
+            <NavItem itemId={2} isActive={location.pathname.startsWith('/portfolio')}>
+              <NavLink to="/portfolio">Algo Portfolio</NavLink>
             </NavItem>
           </NavList>
         </Nav>
@@ -56,20 +57,12 @@ export function MainLayout({ children }: MainLayoutProps) {
               aria-label={isSidebarOpen ? 'Collapse navigation' : 'Expand navigation'}
               aria-pressed={isSidebarOpen}
               onClick={() => setIsSidebarOpen((prev) => !prev)}
-              style={{ marginRight: 8 }}
+              className="main-layout__menu-toggle"
               icon={<BarsIcon />}
             />
             <MastheadBrand>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <span
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--pf-global--warning-color--100)',
-                    display: 'inline-block',
-                  }}
-                />
+              <span className="main-layout__brand">
+                <span className="main-layout__brand-dot" />
                 <span>Portfolio Manager Pro</span>
               </span>
             </MastheadBrand>

@@ -4,12 +4,13 @@ import type { AlgoPortfolioProduct } from '../../../types/portfolio';
 
 export interface WatchListTableProps {
   products: AlgoPortfolioProduct[];
+  onViewProduct?: (product: AlgoPortfolioProduct) => void;
   onEditProduct: (product: AlgoPortfolioProduct) => void;
   onDeleteProduct: (product: AlgoPortfolioProduct) => void;
   deletingProductId?: number | null;
 }
 
-export default function WatchListTable({ products, onEditProduct, onDeleteProduct, deletingProductId }: WatchListTableProps) {
+export default function WatchListTable({ products, onViewProduct, onEditProduct, onDeleteProduct, deletingProductId }: WatchListTableProps) {
   return (
     <Table aria-label="Watchlist table" variant="compact">
       <Thead>
@@ -29,6 +30,16 @@ export default function WatchListTable({ products, onEditProduct, onDeleteProduc
             <Td>{product.name}</Td>
             <Td style={{ textAlign: 'right' }}>{Number(product.volume).toLocaleString()}</Td>
             <Td style={{ textAlign: 'right' }}>
+              {onViewProduct && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => onViewProduct(product)}
+                  isDisabled={deletingProductId === product.id}
+                >
+                  View
+                </Button>
+              )}{' '}
               <Button
                 variant="secondary"
                 size="sm"

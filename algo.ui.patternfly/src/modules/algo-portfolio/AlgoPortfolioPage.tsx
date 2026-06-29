@@ -1,9 +1,26 @@
 import { useEffect, useState } from 'react'
-import { Alert, AlertGroup, Button, Divider, PageSection, Stack, StackItem, Title } from '@patternfly/react-core'
+import {
+  Alert,
+  AlertGroup,
+  Breadcrumb,
+  BreadcrumbItem,
+  Button,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  Divider,
+  PageSection,
+  Stack,
+  StackItem,
+  Title,
+} from '@patternfly/react-core'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { AlgoPortfolioProduct, AlgoPortfolioSaveRequest } from '../../types/portfolio'
 import HoldingsTable from './components/HoldingsTable'
 import AddHoldingModal from './components/AddHoldingModal'
 import {
+  useAlgoPortfolioItem,
   useAlgoPortfolioItems,
   useCreateAlgoPortfolioItem,
   useUpdateAlgoPortfolioItem,
@@ -11,7 +28,21 @@ import {
 import './AlgoPortfolioPage.css'
 
 export default function AlgoPortfolioPage() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { id } = useParams()
+  const routeItemId = id ? Number.parseInt(id, 10) : NaN
+  const hasRouteId = Number.isFinite(routeItemId)
+  const isCreateRoute = location.pathname === '/portfolio/create'
+  const isEditRoute = hasRouteId && location.pathname.endsWith('/edit')
+  const isDetailRoute = hasRouteId && !isEditRoute
+
   const { data, loading: isLoading, error: fetchError, refetch } = useAlgoPortfolioItems()
+  const {
+    data: routeItem,
+    loading: isRouteItemLoading,
+    error: routeItemError,
+  } = useAlgoPortfolioItem(hasRouteId ? routeItemId : null)
   const { createItem, error: createError } = useCreateAlgoPortfolioItem()
   const { updateItem, error: updateError } = useUpdateAlgoPortfolioItem()
 
@@ -22,21 +53,43 @@ export default function AlgoPortfolioPage() {
   const [modalError, setModalError] = useState<string | null>(null)
   const [showErrorToast, setShowErrorToast] = useState(false)
 
-  const error = modalError ?? pageError ?? createError ?? updateError ?? fetchError
+  const error = modalError ?? pageError ?? createError ?? updateError ?? routeItemError ?? fetchError
   const holdings = data ?? []
+
+  useEffect(() => {
+    if (isCreateRoute) {
+      setSelectedHolding(null)
+      setIsAddHoldingModalOpen(true)
+      return
+    }
+
+    if (isEditRoute) {
+      setIsAddHoldingModalOpen(true)
+      if (routeItem) {
+        setSelectedHolding(routeItem)
+      }
+      return
+    }
+
+    setIsAddHoldingModalOpen(false)
+  }, [isCreateRoute, isEditRoute, routeItem])
 
   function openAddHoldingModal() {
     setPageError(null)
     setModalError(null)
     setSelectedHolding(null)
-    setIsAddHoldingModalOpen(true)
+    navigate('/portfolio/create')
   }
 
   function openEditHoldingModal(holding: AlgoPortfolioProduct) {
     setPageError(null)
     setModalError(null)
     setSelectedHolding(holding)
-    setIsAddHoldingModalOpen(true)
+    navigate(`/portfolio/${holding.id}/edit`)
+  }
+
+  function openViewHoldingRoute(holding: AlgoPortfolioProduct) {
+    navigate(`/portfolio/${holding.id}`)
   }
 
   async function handleSaveHolding(payload: AlgoPortfolioSaveRequest) {
@@ -44,8 +97,10 @@ export default function AlgoPortfolioPage() {
     setModalError(null)
 
     try {
-      if (payload.algoPortfolioId > 0) {
-        await updateItem(payload.algoPortfolioId, payload)
+      const updateId = isEditRoute ? routeItemId : payload.algoPortfolioId
+
+      if (updateId > 0) {
+        await updateItem(updateId, payload)
         setSuccessMessage(`Holding ${payload.symbol} updated successfully.`)
       } else {
         await createItem({
@@ -58,6 +113,7 @@ export default function AlgoPortfolioPage() {
       await refetch()
       setIsAddHoldingModalOpen(false)
       setSelectedHolding(null)
+      navigate('/portfolio')
     } catch (fetchError) {
       console.error('AlgoPortfolio save error:', fetchError)
       const fallbackMessage =
@@ -118,10 +174,18 @@ export default function AlgoPortfolioPage() {
       <PageSection variant="secondary" padding={{ default: 'padding' }}>
         <Stack hasGutter>
           <StackItem>
+            <Breadcrumb>
+              <BreadcrumbItem to="/">Dashboard</BreadcrumbItem>
+              <BreadcrumbItem isActive>
+                {isDetailRoute ? `Portfolio Item ${routeItemId}` : 'Portfolio'}
+              </BreadcrumbItem>
+            </Breadcrumb>
+          </StackItem>
+          <StackItem>
             <Stack hasGutter>
               <StackItem>
                 <Title headingLevel="h1" size="2xl" className="algo-portfolio-page__title">
-                  Algo Portfolio
+                  {isDetailRoute ? `Portfolio Item #${routeItemId}` : 'Algo Portfolio'}
                 </Title>
                 <p>View the current portfolio list as returned from the backend API.</p>
               </StackItem>
@@ -129,9 +193,41 @@ export default function AlgoPortfolioPage() {
                 <Button variant="primary" onClick={openAddHoldingModal}>
                   Add Holding
                 </Button>
+                {isDetailRoute && (
+                  <Button variant="secondary" onClick={() => navigate(`/portfolio/${routeItemId}/edit`)} style={{ marginLeft: 8 }}>
+                    Edit Holding
+                  </Button>
+                )}
+                <Button variant="link" onClick={() => navigate('/portfolio/history')}>
+                  View History
+                </Button>
               </StackItem>
             </Stack>
           </StackItem>
+          {isDetailRoute && (
+            <StackItem>
+              {isRouteItemLoading ? (
+                <p>Loading portfolio item details...</p>
+              ) : routeItem ? (
+                <DescriptionList isHorizontal>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Symbol</DescriptionListTerm>
+                    <DescriptionListDescription>{routeItem.symbol}</DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Volume</DescriptionListTerm>
+                    <DescriptionListDescription>{routeItem.volume}</DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Status</DescriptionListTerm>
+                    <DescriptionListDescription>{routeItem.status}</DescriptionListDescription>
+                  </DescriptionListGroup>
+                </DescriptionList>
+              ) : (
+                <Alert variant="warning" isInline title="Portfolio item was not found." />
+              )}
+            </StackItem>
+          )}
         </Stack>
       </PageSection>
 
@@ -143,7 +239,11 @@ export default function AlgoPortfolioPage() {
             ) : error ? (
               <p className="algo-portfolio-page__error">{error}</p>
             ) : (
-              <HoldingsTable holdings={holdings} onEditApiHolding={openEditHoldingModal} />
+              <HoldingsTable
+                holdings={holdings}
+                onViewApiHolding={openViewHoldingRoute}
+                onEditApiHolding={openEditHoldingModal}
+              />
             )}
           </StackItem>
           <StackItem>
@@ -154,13 +254,16 @@ export default function AlgoPortfolioPage() {
 
       <AddHoldingModal
         isOpen={isAddHoldingModalOpen}
-        mode={selectedHolding ? 'edit' : 'add'}
+        mode={isEditRoute || Boolean(selectedHolding) ? 'edit' : 'add'}
         holding={selectedHolding}
         submitError={modalError}
         onClose={() => {
           setIsAddHoldingModalOpen(false)
           setSelectedHolding(null)
           setModalError(null)
+          if (isCreateRoute || isEditRoute) {
+            navigate('/portfolio')
+          }
         }}
         onSaveHolding={handleSaveHolding}
       />

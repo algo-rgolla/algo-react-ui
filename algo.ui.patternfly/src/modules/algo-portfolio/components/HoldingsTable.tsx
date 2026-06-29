@@ -20,6 +20,7 @@ const negativeColor = '#f35a5a'
 
 interface HoldingsTableProps {
   holdings: (StockHolding | AlgoPortfolioProduct)[]
+  onViewApiHolding?: (holding: AlgoPortfolioProduct) => void
   onEditApiHolding?: (holding: AlgoPortfolioProduct) => void
   onEdit?: (holding: StockHolding) => void
   onDelete?: (ticker: string) => void
@@ -31,9 +32,9 @@ function isPortfolioProduct(
   return 'symbol' in holding
 }
 
-export default function HoldingsTable({ holdings, onEditApiHolding, onEdit, onDelete }: HoldingsTableProps) {
+export default function HoldingsTable({ holdings, onViewApiHolding, onEditApiHolding, onEdit, onDelete }: HoldingsTableProps) {
   const hasApiRows = holdings.length > 0 && isPortfolioProduct(holdings[0])
-  const showApiActions = hasApiRows && Boolean(onEditApiHolding)
+  const showApiActions = hasApiRows && Boolean(onEditApiHolding || onViewApiHolding)
   const showLegacyActions = !hasApiRows && Boolean(onEdit || onDelete)
   const showActions = showApiActions || showLegacyActions
 
@@ -85,6 +86,11 @@ export default function HoldingsTable({ holdings, onEditApiHolding, onEdit, onDe
                 </Td>
                 {showApiActions && (
                   <Td style={{ textAlign: 'right' }}>
+                    {onViewApiHolding && (
+                      <Button variant="link" size="sm" onClick={() => onViewApiHolding(holding)}>
+                        View
+                      </Button>
+                    )}
                     <Button variant="secondary" size="sm" onClick={() => onEditApiHolding?.(holding)}>
                       Edit
                     </Button>

@@ -1,18 +1,48 @@
 import { useEffect, useState } from 'react'
-import { Alert, AlertGroup, Button, PageSection, Stack, StackItem, Title } from '@patternfly/react-core'
+import {
+  Alert,
+  AlertGroup,
+  Breadcrumb,
+  BreadcrumbItem,
+  Button,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  PageSection,
+  Stack,
+  StackItem,
+  Title,
+} from '@patternfly/react-core'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { AlgoPortfolioProduct } from '../../types/portfolio'
 import WatchListTable from './components/WatchListTable'
 import WatchlistItemModal from './components/WatchlistItemModal'
 import {
   useCreateWatchlistItem,
   useDeleteWatchlistItem,
+  useWatchlistItem,
   useUpdateWatchlistItem,
   useWatchlistItems,
 } from './hooks'
 import type { WatchlistUpsertRequest } from '../../share/api/services/watchlistApi'
 
 export default function WatchlistPage() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { id } = useParams()
+  const routeItemId = id ? Number.parseInt(id, 10) : NaN
+  const hasRouteId = Number.isFinite(routeItemId)
+  const isCreateRoute = location.pathname === '/watchlist/create'
+  const isEditRoute = hasRouteId && location.pathname.endsWith('/edit')
+  const isDetailRoute = hasRouteId && !isEditRoute
+
   const { data, loading: isLoading, error: fetchError, refetch } = useWatchlistItems()
+  const {
+    data: routeItem,
+    loading: isRouteItemLoading,
+    error: routeItemError,
+  } = useWatchlistItem(hasRouteId ? routeItemId : null)
   const { createItem, error: createError } = useCreateWatchlistItem()
   const { updateItem, error: updateError } = useUpdateWatchlistItem()
   const { deleteItem, error: deleteError } = useDeleteWatchlistItem()
@@ -26,8 +56,33 @@ export default function WatchlistPage() {
   const [successMessage, setSuccessMessage] = useState<string>('Success')
   const [modalError, setModalError] = useState<string | null>(null)
 
-  const error = modalError ?? pageError ?? createError ?? updateError ?? deleteError ?? fetchError
+  const error =
+    modalError ??
+    pageError ??
+    createError ??
+    updateError ??
+    deleteError ??
+    routeItemError ??
+    fetchError
   const products = data ?? []
+
+  useEffect(() => {
+    if (isCreateRoute) {
+      setSelectedProduct(null)
+      setIsWatchlistModalOpen(true)
+      return
+    }
+
+    if (isEditRoute) {
+      setIsWatchlistModalOpen(true)
+      if (routeItem) {
+        setSelectedProduct(routeItem)
+      }
+      return
+    }
+
+    setIsWatchlistModalOpen(false)
+  }, [isCreateRoute, isEditRoute, routeItem])
 
   useEffect(() => {
     if (!showSuccessToast) {
@@ -61,22 +116,28 @@ export default function WatchlistPage() {
     setModalError(null)
     setPageError(null)
     setSelectedProduct(null)
-    setIsWatchlistModalOpen(true)
+    navigate('/watchlist/create')
   }
 
   function openEditModal(product: AlgoPortfolioProduct) {
     setModalError(null)
     setPageError(null)
     setSelectedProduct(product)
-    setIsWatchlistModalOpen(true)
+    navigate(`/watchlist/${product.id}/edit`)
+  }
+
+  function openViewRoute(product: AlgoPortfolioProduct) {
+    navigate(`/watchlist/${product.id}`)
   }
 
   async function handleSaveWatchlistItem(payload: WatchlistUpsertRequest) {
     setModalError(null)
 
     try {
-      if (selectedProduct?.id) {
-        await updateItem(selectedProduct.id, payload)
+      const updateId = isEditRoute ? routeItemId : selectedProduct?.id
+
+      if (updateId) {
+        await updateItem(updateId, payload)
         setSuccessMessage(`Watchlist item ${payload.symbol} updated successfully.`)
       } else {
         await createItem(payload)
@@ -87,6 +148,7 @@ export default function WatchlistPage() {
       setShowSuccessToast(true)
       setSelectedProduct(null)
       setPageError(null)
+      navigate('/watchlist')
     } catch (saveError) {
       console.error('Watchlist save error:', saveError)
       const message =
@@ -142,15 +204,52 @@ export default function WatchlistPage() {
       <PageSection padding={{ default: 'padding' }}>
         <Stack hasGutter>
           <StackItem>
+            <Breadcrumb>
+              <BreadcrumbItem to="/">Dashboard</BreadcrumbItem>
+              <BreadcrumbItem isActive>
+                {isDetailRoute ? `Watchlist Item ${routeItemId}` : 'Watchlist'}
+              </BreadcrumbItem>
+            </Breadcrumb>
+          </StackItem>
+          <StackItem>
             <Title headingLevel="h1" size="2xl">
-              Watchlist
+              {isDetailRoute ? `Watchlist Item #${routeItemId}` : 'Watchlist'}
             </Title>
           </StackItem>
           <StackItem>
             <Button variant="primary" onClick={openCreateModal}>
               Add Watchlist Item
             </Button>
+            {isDetailRoute && (
+              <Button variant="secondary" onClick={() => navigate(`/watchlist/${routeItemId}/edit`)} style={{ marginLeft: 8 }}>
+                Edit Item
+              </Button>
+            )}
           </StackItem>
+          {isDetailRoute && (
+            <StackItem>
+              {isRouteItemLoading ? (
+                <p>Loading watchlist item details...</p>
+              ) : routeItem ? (
+                <DescriptionList isHorizontal>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Symbol</DescriptionListTerm>
+                    <DescriptionListDescription>{routeItem.symbol}</DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Exchange</DescriptionListTerm>
+                    <DescriptionListDescription>{routeItem.exchange}</DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Status</DescriptionListTerm>
+                    <DescriptionListDescription>{routeItem.status}</DescriptionListDescription>
+                  </DescriptionListGroup>
+                </DescriptionList>
+              ) : (
+                <Alert variant="warning" isInline title="Watchlist item was not found." />
+              )}
+            </StackItem>
+          )}
           <StackItem>
             {isLoading ? (
               <p>Loading watchlist...</p>
@@ -159,6 +258,7 @@ export default function WatchlistPage() {
             ) : (
               <WatchListTable
                 products={products}
+                onViewProduct={openViewRoute}
                 onEditProduct={openEditModal}
                 onDeleteProduct={handleDeleteProduct}
                 deletingProductId={deletingProductId}
@@ -170,13 +270,16 @@ export default function WatchlistPage() {
 
       <WatchlistItemModal
         isOpen={isWatchlistModalOpen}
-        mode={selectedProduct ? 'edit' : 'add'}
+        mode={isEditRoute || Boolean(selectedProduct) ? 'edit' : 'add'}
         item={selectedProduct}
         submitError={modalError}
         onClose={() => {
           setIsWatchlistModalOpen(false)
           setSelectedProduct(null)
           setModalError(null)
+          if (isCreateRoute || isEditRoute) {
+            navigate('/watchlist')
+          }
         }}
         onSave={handleSaveWatchlistItem}
       />
