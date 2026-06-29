@@ -23,6 +23,7 @@ import {
   useAlgoPortfolioItem,
   useAlgoPortfolioItems,
   useCreateAlgoPortfolioItem,
+  useDeleteAlgoPortfolioItem,
   useUpdateAlgoPortfolioItem,
 } from './hooks'
 import './AlgoPortfolioPage.css'
@@ -45,6 +46,7 @@ export default function AlgoPortfolioPage() {
   } = useAlgoPortfolioItem(hasRouteId ? routeItemId : null)
   const { createItem, error: createError } = useCreateAlgoPortfolioItem()
   const { updateItem, error: updateError } = useUpdateAlgoPortfolioItem()
+  const { deleteItem, error: deleteError } = useDeleteAlgoPortfolioItem()
 
   const [pageError, setPageError] = useState<string | null>(null)
   const [isAddHoldingModalOpen, setIsAddHoldingModalOpen] = useState(false)
@@ -52,8 +54,9 @@ export default function AlgoPortfolioPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [modalError, setModalError] = useState<string | null>(null)
   const [showErrorToast, setShowErrorToast] = useState(false)
+  const [deletingHoldingId, setDeletingHoldingId] = useState<number | null>(null)
 
-  const error = modalError ?? pageError ?? createError ?? updateError ?? routeItemError ?? fetchError
+  const error = modalError ?? pageError ?? createError ?? updateError ?? deleteError ?? routeItemError ?? fetchError
   const holdings = data ?? []
 
   useEffect(() => {
@@ -90,6 +93,35 @@ export default function AlgoPortfolioPage() {
 
   function openViewHoldingRoute(holding: AlgoPortfolioProduct) {
     navigate(`/portfolio/${holding.id}`)
+  }
+
+  async function handleDeleteHolding(holding: AlgoPortfolioProduct) {
+    const isConfirmed = window.confirm(`Delete holding ${holding.symbol}?`)
+    if (!isConfirmed) {
+      return
+    }
+
+    setPageError(null)
+    setDeletingHoldingId(holding.id)
+
+    try {
+      const response = await deleteItem(holding.id)
+      await refetch()
+      setSuccessMessage(response.message)
+      if (isDetailRoute && routeItemId === holding.id) {
+        navigate('/portfolio')
+      }
+    } catch (deleteError) {
+      console.error('AlgoPortfolio delete error:', deleteError)
+      const message =
+        deleteError instanceof Error
+          ? deleteError.message
+          : 'Unable to delete holding. Please try again.'
+      setPageError(message)
+      setShowErrorToast(true)
+    } finally {
+      setDeletingHoldingId(null)
+    }
   }
 
   async function handleSaveHolding(payload: AlgoPortfolioSaveRequest) {
@@ -198,6 +230,16 @@ export default function AlgoPortfolioPage() {
                     Edit Holding
                   </Button>
                 )}
+                {isDetailRoute && routeItem && (
+                  <Button
+                    variant="danger"
+                    onClick={() => void handleDeleteHolding(routeItem)}
+                    isDisabled={deletingHoldingId === routeItem.id}
+                    style={{ marginLeft: 8 }}
+                  >
+                    Delete Holding
+                  </Button>
+                )}
                 <Button variant="link" onClick={() => navigate('/portfolio/history')}>
                   View History
                 </Button>
@@ -243,6 +285,8 @@ export default function AlgoPortfolioPage() {
                 holdings={holdings}
                 onViewApiHolding={openViewHoldingRoute}
                 onEditApiHolding={openEditHoldingModal}
+                onDeleteApiHolding={handleDeleteHolding}
+                deletingApiHoldingId={deletingHoldingId}
               />
             )}
           </StackItem>

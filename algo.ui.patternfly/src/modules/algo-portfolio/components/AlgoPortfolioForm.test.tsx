@@ -246,6 +246,10 @@ describe('AlgoPortfolioPage integration', () => {
       updateItem: vi.fn().mockResolvedValue(sampleHolding),
       error: null,
     })
+    hooksMock.useDeleteAlgoPortfolioItem.mockReturnValue({
+      deleteItem: vi.fn().mockResolvedValue({ message: 'Deleted successfully.', success: true }),
+      error: null,
+    })
   })
 
   it('renders loading and error states from the data hook', () => {
@@ -359,5 +363,61 @@ describe('AlgoPortfolioPage integration', () => {
       })
     })
     expect(refetch).toHaveBeenCalled()
+  })
+
+  it('deletes a holding from the table flow', async () => {
+    const user = userEvent.setup()
+    const refetch = vi.fn().mockResolvedValue(undefined)
+    const deleteItem = vi.fn().mockResolvedValue({ message: 'Deleted successfully.', success: true })
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    hooksMock.useAlgoPortfolioItems.mockReturnValue({
+      data: [sampleHolding],
+      loading: false,
+      error: null,
+      refetch,
+    })
+    hooksMock.useDeleteAlgoPortfolioItem.mockReturnValue({
+      deleteItem,
+      error: null,
+    })
+
+    renderPortfolioPage()
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => {
+      expect(deleteItem).toHaveBeenCalledWith(15)
+    })
+    expect(refetch).toHaveBeenCalled()
+    expect(await screen.findByText('Deleted successfully.')).toBeInTheDocument()
+  })
+
+  it('deletes a holding from the detail route and returns to the list', async () => {
+    const user = userEvent.setup()
+    const refetch = vi.fn().mockResolvedValue(undefined)
+    const deleteItem = vi.fn().mockResolvedValue({ message: 'Deleted successfully.', success: true })
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    hooksMock.useAlgoPortfolioItems.mockReturnValue({
+      data: [sampleHolding],
+      loading: false,
+      error: null,
+      refetch,
+    })
+    hooksMock.useDeleteAlgoPortfolioItem.mockReturnValue({
+      deleteItem,
+      error: null,
+    })
+
+    renderPortfolioPage('/portfolio/15')
+
+    await user.click(await screen.findByRole('button', { name: 'Delete Holding' }))
+
+    await waitFor(() => {
+      expect(deleteItem).toHaveBeenCalledWith(15)
+    })
+    expect(refetch).toHaveBeenCalled()
+    expect(await screen.findByText('Algo Portfolio')).toBeInTheDocument()
   })
 })

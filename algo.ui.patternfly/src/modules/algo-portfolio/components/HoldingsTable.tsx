@@ -22,6 +22,8 @@ interface HoldingsTableProps {
   holdings: (StockHolding | AlgoPortfolioProduct)[]
   onViewApiHolding?: (holding: AlgoPortfolioProduct) => void
   onEditApiHolding?: (holding: AlgoPortfolioProduct) => void
+  onDeleteApiHolding?: (holding: AlgoPortfolioProduct) => void
+  deletingApiHoldingId?: number | null
   onEdit?: (holding: StockHolding) => void
   onDelete?: (ticker: string) => void
 }
@@ -32,9 +34,17 @@ function isPortfolioProduct(
   return 'symbol' in holding
 }
 
-export default function HoldingsTable({ holdings, onViewApiHolding, onEditApiHolding, onEdit, onDelete }: HoldingsTableProps) {
+export default function HoldingsTable({
+  holdings,
+  onViewApiHolding,
+  onEditApiHolding,
+  onDeleteApiHolding,
+  deletingApiHoldingId,
+  onEdit,
+  onDelete,
+}: HoldingsTableProps) {
   const hasApiRows = holdings.length > 0 && isPortfolioProduct(holdings[0])
-  const showApiActions = hasApiRows && Boolean(onEditApiHolding || onViewApiHolding)
+  const showApiActions = hasApiRows && Boolean(onEditApiHolding || onViewApiHolding || onDeleteApiHolding)
   const showLegacyActions = !hasApiRows && Boolean(onEdit || onDelete)
   const showActions = showApiActions || showLegacyActions
 
@@ -87,13 +97,36 @@ export default function HoldingsTable({ holdings, onViewApiHolding, onEditApiHol
                 {showApiActions && (
                   <Td style={{ textAlign: 'right' }}>
                     {onViewApiHolding && (
-                      <Button variant="link" size="sm" onClick={() => onViewApiHolding(holding)}>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => onViewApiHolding(holding)}
+                        isDisabled={deletingApiHoldingId === holding.id}
+                      >
                         View
                       </Button>
                     )}
-                    <Button variant="secondary" size="sm" onClick={() => onEditApiHolding?.(holding)}>
-                      Edit
-                    </Button>
+                    {onEditApiHolding && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => onEditApiHolding(holding)}
+                        isDisabled={deletingApiHoldingId === holding.id}
+                      >
+                        Edit
+                      </Button>
+                    )}
+                    {onDeleteApiHolding && (
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => onDeleteApiHolding(holding)}
+                        isDisabled={deletingApiHoldingId === holding.id}
+                        style={{ marginLeft: 8 }}
+                      >
+                        Delete
+                      </Button>
+                    )}
                   </Td>
                 )}
               </Tr>
